@@ -28,7 +28,9 @@ class GameplayState(BaseState):
     
     def __init__(self):
         super().__init__()
-        
+        # Indice da fala do professor
+        self.current_speech_index = 0
+
         # Para onde ir quando este estado terminar (self.done = True)
         self.next_state = "END_SCREEN" 
         
@@ -38,6 +40,11 @@ class GameplayState(BaseState):
         # Timer para os passos de 'auto_proceed'
         self.auto_proceed_timer = None
         self.auto_proceed_delay = 0
+
+        # Flag para saber se estamos mostrando um evento (ex: facebook)
+        self.showing_event_image = False
+        self.event_image_timer = None
+        self.event_image_duration = 5000 # ms
 
         # --- Carregar Assets Estáticos ---
         # (Você precisará criar esta pasta e imagem)
@@ -59,6 +66,20 @@ class GameplayState(BaseState):
         self.speech_bubble = SpeechBubble(SPEECH_BUBBLE_RECT)
         self.objective_list = ObjectiveList(OBJECTIVE_LIST_RECT)
         
+
+    def close_event_image(self):
+        """
+        Rotina auxiliar para fechar a imagem do evento.
+        Restaura o estado para continuar a pergunta.
+        """
+        self.showing_event_image = False
+        self.event_image_timer = None # <-- Reseta o timer
+        self.terminal.show_event_image(None)
+        
+        # Restaura a fala original da pergunta
+        step_data = STORY_STEPS[self.current_step]
+        self.speech_bubble.set_text(step_data.get("professor_speech"))
+    
     def startup(self, persistent_data):
         """Chamado uma vez quando o estado começa (depois da cutscene)."""
         super().startup(persistent_data)
@@ -90,8 +111,11 @@ class GameplayState(BaseState):
         step_data = STORY_STEPS[self.current_step]
         
         # 4. Atualiza os componentes de "saída" (display)
-        if step_data.get("professor_speech"):
-            self.speech_bubble.set_text(step_data.get("professor_speech"))
+        self.speech_list = step_data.get("professor_speech", ())
+        print(self.speech_list)
+        # Mostra automaticamente a primeira fala, se houver
+        if self.speech_list:
+            self.speech_bubble.set_text(self.speech_list[self.current_speech_index])
             
         if step_data.get("objective"):
             self.objective_list.set_objective(step_data.get("objective"))
@@ -121,6 +145,7 @@ class GameplayState(BaseState):
             self.input_box.activate(
                 step_data.get("question_prompt"),
                 step_data.get("answer_handlers")
+                
             )
             
         elif action == "auto_proceed":
@@ -148,7 +173,19 @@ class GameplayState(BaseState):
         super().handle_event(event) # Lida com o evento QUIT
         
         result = None
-        
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.speech_list:
+                self.advance_speech()
+        if self.showing_event_image:
+            # Se estivermos mostrando uma imagem de evento,
+            # qualquer clique fecha a imagem e retorna ao input.
+            
+            super().handle_event(event)  # Lida com o evento QUIT
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                self.close_event_image()
+            return
+
         # 1. O Terminal está ativo?
         if self.terminal.is_active:
             result = self.terminal.handle_event(event)
@@ -184,12 +221,22 @@ class GameplayState(BaseState):
             image_path = event_data.get("terminal_event_display")
             self.terminal.show_event_image(image_path)
             
+            if image_path:
+                self.showing_event_image = True
+                self.event_image_timer = pygame.time.get_ticks()
+
             # TODO: Tocar o 'sound_effect'
             # (Exigiria inicializar pygame.mixer)
             
             # Importante: NÃO avançamos a história.
             # O jogador é forçado a tentar outra resposta.
-
+    def advance_speech(self):
+        if self.speech_list:
+            if self.current_speech_index < len(self.speech_list):
+                self.speech_bubble.set_text(self.speech_list[self.current_speech_index])
+                self.current_speech_index += 1
+            else:
+                self.speech_bubble.set_text(self.speech_list[self.current_speech_index-1])
     def update(self, dt):
         """
         Atualiza todos os componentes (para cursores piscando)
@@ -208,6 +255,12 @@ class GameplayState(BaseState):
             if now - self.auto_proceed_timer >= self.auto_proceed_delay:
                 self.auto_proceed_timer = None # Desativa o timer
                 self.proceed_to_next_step()
+
+        # 3. Checa o timer de imagem de evento
+        if self.event_image_timer is not None:
+            now = pygame.time.get_ticks()
+            if now - self.event_image_timer >= self.event_image_duration:
+                self.close_event_image()
 
     def draw(self, screen):
         """

@@ -84,13 +84,17 @@ INPUT_BOX_RECT = pygame.Rect(
 )
 
 # 3. Balão de Fala (Acima do Terminal)
-SPEECH_BUBBLE_HEIGHT = 120
+NOVA_LARGURA_BALAO = 750 
+NOVA_ALTURA_BALAO = 160
+
+SPEECH_BUBBLE_HEIGHT = NOVA_ALTURA_BALAO
 SPEECH_BUBBLE_RECT = pygame.Rect(
     LEFT_PANEL_RECT.right + PADDING,
     PADDING,
-    INPUT_BOX_RECT.width, # Mesma largura da caixa de entrada
-    SPEECH_BUBBLE_HEIGHT
+    NOVA_LARGURA_BALAO, # Mesma largura da caixa de entrada
+    NOVA_ALTURA_BALAO
 )
+
 
 # 4. Terminal (O restante do espaço)
 TERMINAL_RECT = pygame.Rect(

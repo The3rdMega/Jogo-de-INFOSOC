@@ -39,7 +39,20 @@ class SpeechBubble:
         self.line_height = self.font.get_height() + 2
         
         # Margem interna do balão
-        self.padding = 10 
+        self.padding = 25
+
+        try:
+            # 1. Carrega sua imagem PNG
+            raw_image = pygame.image.load("assets/images/balao_fala.png").convert_alpha()
+            # 2. Redimensiona a imagem para o tamanho exato do Rect
+            self.image = pygame.transform.scale(raw_image, (self.rect.width, self.rect.height))
+        except Exception as e:
+            print(f"ERRO: Não foi possível carregar 'assets/images/balao_fala.png': {e}")
+            # 3. Plano B: Se falhar, self.image fica None
+            self.image = None
+            # E guardamos as cores do fallback
+            self.fallback_bg = COLOR_BUBBLE_BG
+            self.fallback_border = COLOR_BUBBLE_BORDER
 
     def set_text(self, new_text):
         """
@@ -90,8 +103,13 @@ class SpeechBubble:
         # 1. Desenha o fundo e a borda
         # (Nota: um balão de fala real teria uma "ponta",
         # mas por enquanto um retângulo funciona)
-        pygame.draw.rect(screen, self.bg_color, self.rect)
-        pygame.draw.rect(screen, self.border_color, self.rect, 2) # Borda
+
+        if self.image:
+            screen.blit(self.image, self.rect.topleft)
+        else:
+            # 1. (Plano B) Desenha o retângulo cinza se a imagem falhou
+            pygame.draw.rect(screen, self.fallback_bg, self.rect)
+            pygame.draw.rect(screen, self.fallback_border, self.rect, 2)
         
         # 2. Desenha cada linha de texto renderizada
         

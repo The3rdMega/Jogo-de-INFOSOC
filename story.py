@@ -2,30 +2,43 @@
 
 STORY_STEPS = [
     { # Passo 0: Professor checa SSH (COMANDO)
-        "professor_speech": "Vamos, como de costume, checar a SSH.",
+        "professor_speech": (
+            "Vamos, como de costume, checar a SSH.",
+            "Olha, eu tenho um serviço de log nesse computador",
+            "Ele fica monitorando pra mim quem acessa essa SSH",
+            "Você sabe o que é SSH né?" # Sim ou Não - If Não - Explica SSH e como conectar (ssh user@ip) - ZOA O ALUNO - Sim - AINDA BEM!
+        ),
         "terminal_text": "", 
-        "objective": "Checar a SSH (ssh prof_larcerinho@192.158.1.1)", 
-        "action_type": "await_command",
+        "objective": "Cheque a sua SSH para validar possíveis invasões.", 
+        "action_type": "ask_question_branching",
         "command_prompt": "user@professor-pc:~$", 
-        "expected_command": "ssh prof_larcerinho@192.158.1.1" 
+        "expected_command": "ssh prof_larcerinho@192.158.1.1",
+        "answer_handlers" : {
+            "Sim": {
+                "action": "proceed"
+            },
+            "Não" : {
+                "action": "proceed"
+            },
+        }
     },
     { # Passo 1: O log aparece (AUTO)
         "professor_speech": "Que ataque que aconteceu aqui?!",
         "terminal_text": ( 
-            "Authentication log:\n"
+            "PLACEHOLDER!!!! \n"
             "FAILED login for 'root' from 189.12.55.10 PORT 22\n"
             "SUCCESS login for 'root' from 189.12.55.10 PORT 22\n"
             "FILE_ACCESS: User 'root' read /home/senhas.txt\n"
             "DISCONNECTED."
         ),
-        "objective": "Descubra o que aconteceu",
+        "objective": "Consiga informações sobre o ataque.",
         "action_type": "auto_proceed", 
         "next_step_delay": 1000 
     },
     { # Passo 2: Pergunta IP (PERGUNTA)
-        "professor_speech": "Rápido, anote aí. Qual foi o IP do ataque?", 
+        "professor_speech": "Que IP foi esse que me atacou?", 
         "terminal_text": "...", 
-        "objective": "Descubra o que aconteceu",
+        "objective": "Consiga informações sobre o ataque.",
         "action_type": "ask_question",
         "question_prompt": "Qual IP realizou o ataque?",
         "expected_answer": "189.12.55.10"
