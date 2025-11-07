@@ -145,7 +145,6 @@ class GameplayState(BaseState):
             self.input_box.activate(
                 step_data.get("question_prompt"),
                 step_data.get("answer_handlers")
-                
             )
             
         elif action == "auto_proceed":

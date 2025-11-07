@@ -14,16 +14,18 @@ STORY_STEPS = [
         "command_prompt": "user@professor-pc:~$", 
         "expected_command": "ssh prof_larcerinho@192.158.1.1",
         "answer_handlers" : {
-            "Sim": {
-                "action": "proceed"
+            "sim": { 
+                "action": "ok"
             },
-            "Não" : {
-                "action": "proceed"
+            "nao" : {
+                "action": "show_ssh_explanation"
             },
         }
     },
     { # Passo 1: O log aparece (AUTO)
-        "professor_speech": "Que ataque que aconteceu aqui?!",
+        "professor_speech": (
+            "Que ataque que aconteceu aqui?!",
+        ),
         "terminal_text": ( 
             "PLACEHOLDER!!!! \n"
             "FAILED login for 'root' from 189.12.55.10 PORT 22\n"
