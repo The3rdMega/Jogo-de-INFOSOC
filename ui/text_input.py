@@ -48,6 +48,13 @@ class TextInputBox:
         self.cursor_visible = True
         self.cursor_timer = 0
         self.cursor_blink_rate = 500 # ms
+
+        # --- Tecla Segurada ---
+        self.key_held = None             # Armazena o CÓDIGO da tecla (ex: K_BACKSPACE, K_a)
+        self.key_held_unicode = None     # Armazena o CARACTERE da tecla (ex: 'a')
+        self.key_repeat_timer = 0        # Timer para controlar a repetição
+        self.key_repeat_delay = 400      # Atraso inicial antes de repetir (400ms)
+        self.key_repeat_rate = 30        # Taxa de repetição (a cada 30ms)
         
     def activate(self, prompt, answer_data):
         """Ativa a caixa de entrada com uma nova pergunta."""
@@ -56,6 +63,7 @@ class TextInputBox:
         self.answer_data = answer_data
         self.current_text = "" # Limpa a resposta anterior
         self.cursor_visible = True
+        self.key_held = None # Garante que reseta ao ativar
         
     def deactivate(self):
         """Desativa a caixa de entrada."""
@@ -63,74 +71,104 @@ class TextInputBox:
         self.prompt_text = ""
         self.current_text = ""
         self.answer_data = None
+        self.key_held = None # Garante que reseta ao desativar
         
     def handle_event(self, event):
         """
         Processa um único evento do Pygame (teclado).
         Retorna um status se uma ação foi concluída.
         """
-        if not self.is_active or event.type != pygame.KEYDOWN:
-            return None # Não faz nada se não estiver ativo
+        if not self.is_active:
+            return None
+
+        # --- EVENTO DE SOLTAR A TECLA ---
+        if event.type == pygame.KEYUP:
+            # Se a tecla que foi solta é a mesma que estávamos rastreando
+            if event.key == self.key_held:
+                self.key_held = None # Para de rastrear
+                self.key_held_unicode = None
+            return None
+
+        # --- EVENTO DE PRESSIONAR A TECLA ---
+        if event.type == pygame.KEYDOWN:
+            # Armazena qual tecla está sendo segurada
+            self.key_held = event.key
+            self.key_held_unicode = event.unicode
             
-        if event.key == pygame.K_RETURN:
-            # --- Jogador pressionou Enter ---
-            user_answer = self.current_text.strip().lower()
+            # Define o timer para o *atraso inicial*
+            self.key_repeat_timer = pygame.time.get_ticks() + self.key_repeat_delay
             
-            # Limpa a linha de entrada atual
-            self.current_text = ""
+            # --- Executa a Ação da Tecla (primeira vez) ---
             
-            # --- Lógica de verificação de resposta ---
-            
-            # 1. Caso: 'ask_question' (resposta simples)
-            if isinstance(self.answer_data, str):
-                expected = self.answer_data.lower()
-                if user_answer == expected:
-                    self.deactivate()
-                    return "correct" # Resposta correta simples
-                else:
-                    return "incorrect" # Resposta errada simples
-            
-            # 2. Caso: 'ask_question_branching' (múltiplas respostas)
-            elif isinstance(self.answer_data, dict):
-                if user_answer in self.answer_data:
-                    handler = self.answer_data[user_answer]
-                    
-                    if handler["action"] == "proceed":
-                        self.deactivate()
-                        return "correct" # Resposta correta que avança a história
-                    elif handler["action"] == "show_event":
-                        # Retorna o dicionário de evento inteiro
-                        # para o gameplay.py processar
-                        return handler 
-                else:
-                    # O jogador digitou algo que não é uma opção
-                    return "invalid_option"
-                    
-            return None # Não deve chegar aqui
-            
-        elif event.key == pygame.K_BACKSPACE:
-            # --- Jogador pressionou Backspace ---
-            self.current_text = self.current_text[:-1]
-            
-        else:
-            # --- Outra tecla (letra, número, símbolo) ---
-            # Garante que o texto não ultrapasse a largura da caixa
-            prompt_width = self.font.size("> " + self.current_text)[0]
-            if prompt_width < self.rect.width - 20: # 20px de margem
-                self.current_text += event.unicode
+            if event.key == pygame.K_RETURN:
+                # --- Jogador pressionou Enter ---
+                user_answer = self.current_text.strip().lower()
+                self.current_text = ""
+                self.key_held = None # Enter não se repete
                 
+                # --- Lógica de verificação de resposta (sem mudança) ---
+                if isinstance(self.answer_data, str):
+                    expected = self.answer_data.lower()
+                    return "correct" if user_answer == expected else "incorrect"
+                
+                elif isinstance(self.answer_data, dict):
+                    if user_answer in self.answer_data:
+                        handler = self.answer_data[user_answer]
+                        if handler["action"] == "proceed":
+                            return "correct"
+                        elif handler["action"] == "show_event":
+                            return handler 
+                    else:
+                        return "invalid_option"
+                return None
+            
+            elif event.key == pygame.K_BACKSPACE:
+                # --- Jogador pressionou Backspace ---
+                self.current_text = self.current_text[:-1] # Apaga um
+            
+            else:
+                # --- Outra tecla (letra, número, símbolo) ---
+                # Garante que o texto não ultrapasse a largura da caixa
+                prompt_width = self.font.size("> " + self.current_text)[0]
+                if prompt_width < self.rect.width - 20:
+                    self.current_text += event.unicode # Adiciona um
+                    
+            return None # Evento de KEYDOWN processado
+            
         return None # Nenhum evento de "fim de ação"
 
     def update(self):
-        """Atualiza o estado interno (cursor)."""
+        """Atualiza o estado interno (cursor E REPETIÇÃO DE TECLA)."""
         if not self.is_active:
             return
             
-        # Lógica do cursor piscando
-        now = pygame.time.get_ticks()
+        now = pygame.time.get_ticks() # Pega o tempo atual
+            
+        # Lógica do cursor piscando (sem mudança)
         if now - self.cursor_timer > self.cursor_blink_rate:
             self.cursor_visible = not self.cursor_visible
             self.cursor_timer = now
+            
+        # --- LÓGICA DE REPETIÇÃO DE TECLA (MODIFICADA) ---
+        if self.key_held: # Se *qualquer* tecla estiver sendo segurada
+            
+            # Se o timer de repetição estourou
+            if now >= self.key_repeat_timer:
+                
+                # Executa a ação da tecla *novamente*
+                
+                if self.key_held == pygame.K_BACKSPACE:
+                    self.current_text = self.current_text[:-1]
+                
+                # Não repete o Enter, só teclas de texto
+                elif self.key_held != pygame.K_RETURN: 
+                    prompt_width = self.font.size("> " + self.current_text)[0]
+                    if prompt_width < self.rect.width - 20:
+                         # Usa o caractere unicode que salvamos
+                        self.current_text += self.key_held_unicode
+                
+                # Reinicia o timer para a *taxa de repetição* (mais rápida)
+                self.key_repeat_timer = now + self.key_repeat_rate
 
     def draw(self, screen):
         """Desenha a caixa de entrada na tela."""

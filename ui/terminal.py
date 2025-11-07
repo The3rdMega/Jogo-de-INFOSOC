@@ -49,6 +49,13 @@ class InteractiveTerminal:
         self.cursor_visible = True
         self.cursor_timer = 0
         self.cursor_blink_rate = 500 # em milissegundos
+
+        # --- Tecla Segurada ---
+        self.key_held = None             # Armazena o CÓDIGO da tecla (ex: K_BACKSPACE, K_a)
+        self.key_held_unicode = None     # Armazena o CARACTERE da tecla (ex: 'a')
+        self.key_repeat_timer = 0        # Timer para controlar a repetição
+        self.key_repeat_delay = 400      # Atraso inicial antes de repetir (400ms)
+        self.key_repeat_rate = 30        # Taxa de repetição (a cada 30ms)
         
     
     def activate_input(self, prompt, expected_command):
@@ -58,12 +65,14 @@ class InteractiveTerminal:
         self.expected_command = expected_command
         self.current_line = ""
         self.event_image = None # Garante que nenhuma imagem esteja visível
-        
+        self.key_held = None # Garante que reseta ao ativar
+
     def deactivate_input(self):
         """Desativa o modo de entrada (para 'auto_proceed' ou 'ask_question')."""
         self.is_active = False
         self.current_prompt = ""
         self.current_line = ""
+        self.key_held = None # Garante que reseta ao desativar
         
     def add_to_history(self, text_block):
         """
@@ -102,51 +111,88 @@ class InteractiveTerminal:
     def handle_event(self, event):
         """
         Processa um único evento do Pygame (teclado).
-        Deve ser chamado pelo 'gameplay.py'.
         Retorna um status (string) se uma ação foi concluída.
         """
-        if not self.is_active or event.type != pygame.KEYDOWN:
-            return None # Não faz nada se não estiver ativo
+        if not self.is_active:
+            return None
+
+        # --- EVENTO DE SOLTAR A TECLA ---
+        if event.type == pygame.KEYUP:
+            if event.key == self.key_held:
+                self.key_held = None
+                self.key_held_unicode = None
+            return None
+
+        # --- EVENTO DE PRESSIONAR A TECLA ---
+        if event.type == pygame.KEYDOWN:
+            # Armazena qual tecla está sendo segurada
+            self.key_held = event.key
+            self.key_held_unicode = event.unicode
             
-        if event.key == pygame.K_RETURN:
-            # --- Jogador pressionou Enter ---
-            command_typed = self.current_line.strip()
+            # Define o timer para o *atraso inicial*
+            self.key_repeat_timer = pygame.time.get_ticks() + self.key_repeat_delay
+
+            # --- Executa a Ação da Tecla (primeira vez) ---
             
-            # Adiciona o que o jogador digitou ao histórico
-            self.add_to_history(self.current_prompt + command_typed)
-            self.current_line = "" # Limpa a linha de entrada
-            
-            # Compara com o comando esperado
-            if command_typed.lower() == self.expected_command.lower():
-                self.deactivate_input()
-                return "correct_command"
+            if event.key == pygame.K_RETURN:
+                # --- Jogador pressionou Enter ---
+                command_typed = self.current_line.strip()
+                
+                # Adiciona o que o jogador digitou ao histórico
+                self.add_to_history(self.current_prompt + command_typed)
+                self.current_line = "" # Limpa a linha de entrada
+                self.key_held = None # Enter não se repete
+                
+                # Compara com o comando esperado
+                if command_typed.lower() == self.expected_command.lower():
+                    self.deactivate_input()
+                    return "correct_command"
+                else:
+                    self.add_to_history(f"bash: command not found: {command_typed}")
+                    return "incorrect_command"
+                    
+            elif event.key == pygame.K_BACKSPACE:
+                # --- Jogador pressionou Backspace ---
+                self.current_line = self.current_line[:-1] # Apaga um
+                
             else:
-                # Feedback de comando errado
-                self.add_to_history(f"bash: command not found: {command_typed}")
-                return "incorrect_command"
-                
-        elif event.key == pygame.K_BACKSPACE:
-            # --- Jogador pressionou Backspace ---
-            self.current_line = self.current_line[:-1]
+                # --- Outra tecla (letra, número, símbolo) ---
+                if self.font.size(self.current_prompt + self.current_line)[0] < self.rect.width - 15:
+                    self.current_line += event.unicode # Adiciona um
+                    
+            return None # Evento de KEYDOWN processado
             
-        else:
-            # --- Outra tecla (letra, número, símbolo) ---
-            # Garante que o texto não ultrapasse a largura do terminal
-            if self.font.size(self.current_prompt + self.current_line)[0] < self.rect.width - 15:
-                self.current_line += event.unicode
-                
         return None # Nenhum evento de "fim de ação"
 
     def update(self):
         """
-        Atualiza o estado interno do terminal (ex: cursor piscando).
-        Deve ser chamado a cada frame pelo 'gameplay.py'.
+        Atualiza o estado interno (cursor E REPETIÇÃO DE TECLA).
         """
-        # Lógica do cursor piscando
-        now = pygame.time.get_ticks()
+        now = pygame.time.get_ticks() # Pega o tempo atual
+        
+        # Lógica do cursor piscando (sem mudança)
         if now - self.cursor_timer > self.cursor_blink_rate:
             self.cursor_visible = not self.cursor_visible
             self.cursor_timer = now
+
+        # --- LÓGICA DE REPETIÇÃO DE TECLA (NOVO) ---
+        if self.key_held and self.is_active: # Se uma tecla está segurada E o terminal está ativo
+            
+            # Se o timer de repetição estourou
+            if now >= self.key_repeat_timer:
+                
+                # Executa a ação da tecla *novamente*
+                
+                if self.key_held == pygame.K_BACKSPACE:
+                    self.current_line = self.current_line[:-1]
+                
+                # Não repete o Enter, só teclas de texto
+                elif self.key_held != pygame.K_RETURN: 
+                    if self.font.size(self.current_prompt + self.current_line)[0] < self.rect.width - 15:
+                        self.current_line += self.key_held_unicode
+                
+                # Reinicia o timer para a *taxa de repetição* (mais rápida)
+                self.key_repeat_timer = now + self.key_repeat_rate
 
     def draw(self, screen):
         """
