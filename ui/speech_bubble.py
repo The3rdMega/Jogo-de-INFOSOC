@@ -32,8 +32,9 @@ class SpeechBubble:
         
         # --- Fonte ---
         try:
-            self.font = pygame.font.SysFont('Arial', 16) # Uma fonte mais "normal"
+            self.font = pygame.font.SysFont('ltromatic', 30) # Uma fonte mais "normal"
         except:
+            print("Fonte 'ltromatic' não encontrada. Usando fonte padrão.")
             self.font = pygame.font.SysFont('sans-serif', 16)
             
         self.line_height = self.font.get_height() + 2

@@ -36,7 +36,7 @@ class TextInputBox:
         
         # --- Renderização de Fonte ---
         try:
-            self.font = pygame.font.SysFont('Consolas', 18)
+            self.font = pygame.font.SysFont('ByteBounce', 30)
         except:
             self.font = pygame.font.SysFont('monospace', 18)
             
