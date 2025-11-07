@@ -1,26 +1,38 @@
 # (Passos 0 a 5 continuam idênticos à nossa última versão)
 
 STORY_STEPS = [
-    { # Passo 0: Professor checa SSH (COMANDO)
+    { # Passo 1: Explicação da SSH
         "professor_speech": (
-            "Vamos, como de costume, checar a SSH.",
-            "Olha, eu tenho um serviço de log nesse computador",
-            "Ele fica monitorando pra mim quem acessa essa SSH",
-            "Você sabe o que é SSH né?" # Sim ou Não - If Não - Explica SSH e como conectar (ssh user@ip) - ZOA O ALUNO - Sim - AINDA BEM!
+            "Primeiro, vamos checar a SSH.",
+            "Eu tenho o log habilitado.",
+            "As vezes a gente acha alguma coisa lá." 
         ),
         "terminal_text": "", 
         "objective": "Cheque a sua SSH para validar possíveis invasões.", 
         "action_type": "ask_question_branching",
-        "command_prompt": "user@professor-pc:~$", 
-        "expected_command": "ssh prof_larcerinho@192.158.1.1",
-        "answer_handlers" : {
-            "sim": { 
-                "action": "ok"
+        "question_prompt" : "Você sabe o que é SSH?",
+        "answer_handlers":{
+            "sim" : {
+                "action" : "show_event",
+                "professor_speech" : "Ah, ainda bem que não estou lidando com um leigo.",
+                "action": "proceed",
             },
             "nao" : {
-                "action": "show_ssh_explanation"
-            },
+                "action" : "show_event",
+                "professor_speech" : "Esses alunos dos CiC estão cada vez mais burros",
+                "action": "proceed",
+            }
         }
+    },
+    { # Passo 1: OK SSH
+        "professor_speech": (
+            "...", 
+        ),
+        "terminal_text": "", 
+        "objective": "Cheque a sua SSH para validar possíveis invasões.", 
+        "action_type": "ask_question",
+        "command_prompt": "user@professor-pc:~$", 
+        "expected_command": "ssh prof_larcerinho@192.158.1.1",
     },
     { # Passo 1: O log aparece (AUTO)
         "professor_speech": (

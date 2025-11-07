@@ -105,14 +105,13 @@ class GameplayState(BaseState):
             
         # 2. Reseta o timer de auto-avanço
         self.auto_proceed_timer = None
-            
+        self.current_speech_index = 0
         # 3. Pega os dados do passo atual
         self.current_step = step_index
         step_data = STORY_STEPS[self.current_step]
         
         # 4. Atualiza os componentes de "saída" (display)
         self.speech_list = step_data.get("professor_speech", ())
-        print(self.speech_list)
         # Mostra automaticamente a primeira fala, se houver
         if self.speech_list:
             self.speech_bubble.set_text(self.speech_list[self.current_speech_index])
@@ -210,7 +209,17 @@ class GameplayState(BaseState):
 
     def handle_branch_event(self, event_data):
         """Lida com as respostas que não avançam a história."""
-        
+        if event_data.get("action") == "ssh_ok_event":
+            print("Entrou aqui")
+            next_step = event_data.get("next_step")
+            self.speech_bubble.set_text(event_data.get("professor_speech"))
+            self.load_story_step(next_step)
+            
+        if event_data.get("action") == "show_ssh_explanation":
+            next_step = event_data.get("next_step")
+            self.speech_bubble.set_text(event_data.get("professor_speech"))
+            self.load_story_step(next_step)
+
         if event_data.get("action") == "show_event":
             # Atualiza a fala do professor
             if event_data.get("professor_speech"):
@@ -228,7 +237,8 @@ class GameplayState(BaseState):
             # (Exigiria inicializar pygame.mixer)
             
             # Importante: NÃO avançamos a história.
-            # O jogador é forçado a tentar outra resposta.
+            # O jogador é forçado a tentar outra resposta. 
+               
     def advance_speech(self):
         if self.speech_list:
             if self.current_speech_index < len(self.speech_list):
