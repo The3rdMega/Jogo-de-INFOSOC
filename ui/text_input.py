@@ -117,7 +117,13 @@ class TextInputBox:
                         if handler["action"] == "proceed":
                             return "correct"
                         elif handler["action"] == "show_event":
-                            return handler 
+                            return handler
+                        elif handler["action"] == "proceed_with_speech":
+                            self.deactivate() # Desativa a caixa
+                            return handler
+                        elif handler["action"] == "show_speech_and_proceed": # (Da nossa conversa anterior)
+                            self.deactivate() 
+                            return handler
                     else:
                         return "invalid_option"
                 return None

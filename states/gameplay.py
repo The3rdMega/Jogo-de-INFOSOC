@@ -30,6 +30,7 @@ class GameplayState(BaseState):
         super().__init__()
         # Indice da fala do professor
         self.current_speech_index = 0
+        self.speech_list = None
 
         # Para onde ir quando este estado terminar (self.done = True)
         self.next_state = "END_SCREEN" 
@@ -78,18 +79,58 @@ class GameplayState(BaseState):
         
         # Restaura a fala original da pergunta
         step_data = STORY_STEPS[self.current_step]
-        self.speech_bubble.set_text(step_data.get("professor_speech"))
+        # <-- MODIFICAÇÃO: Usa a nova função set_speech
+        self.set_speech(step_data.get("professor_speech"))
     
     def startup(self, persistent_data):
         """Chamado uma vez quando o estado começa (depois da cutscene)."""
         super().startup(persistent_data)
         
+        # <-- NOVO: Adiciona a lógica de persistência que fizemos antes
+        self.persist['override_speech'] = None 
+
         # Reseta o estado
         self.current_step = 0
         self.terminal.clear_history()
         
         # Carrega o primeiro passo da história
         self.load_story_step(self.current_step)
+
+    # --- NOVA FUNÇÃO AUXILIAR ---
+    def activate_input_for_current_step(self):
+        """
+        Lê o passo atual e ativa o componente de input correto.
+        (Esta é a lógica 'roubada' do load_story_step)
+        """
+        step_data = STORY_STEPS[self.current_step]
+        action = step_data.get("action_type")
+        
+        if action == "await_command":
+            self.terminal.activate_input(
+                step_data.get("command_prompt"),
+                step_data.get("expected_command")
+            )
+            self.input_box.deactivate()
+        elif action == "ask_question":
+            self.terminal.deactivate_input()
+            self.input_box.activate(
+                step_data.get("question_prompt"),
+                step_data.get("expected_answer")
+            )
+        elif action == "ask_question_branching":
+            self.terminal.deactivate_input()
+            self.input_box.activate(
+                step_data.get("question_prompt"),
+                step_data.get("answer_handlers")
+            )
+        elif action == "auto_proceed":
+            self.terminal.deactivate_input()
+            self.input_box.deactivate()
+            self.auto_proceed_timer = pygame.time.get_ticks()
+            self.auto_proceed_delay = step_data.get("next_step_delay", 1000)
+        else: 
+            self.terminal.deactivate_input()
+            self.input_box.deactivate()
 
     def load_story_step(self, step_index):
         """
@@ -100,21 +141,36 @@ class GameplayState(BaseState):
         # 1. Verifica se a história terminou
         if step_index >= len(STORY_STEPS):
             print("Fim da história!")
-            self.done = True # Sinaliza ao main.py para trocar de estado
+            self.done = True
             return
             
-        # 2. Reseta o timer de auto-avanço
+        # 2. Reseta timers e falas
         self.auto_proceed_timer = None
+        self.event_image_timer = None
         self.current_speech_index = 0
+        self.speech_list = None
+        
         # 3. Pega os dados do passo atual
         self.current_step = step_index
         step_data = STORY_STEPS[self.current_step]
         
         # 4. Atualiza os componentes de "saída" (display)
-        self.speech_list = step_data.get("professor_speech", ())
-        # Mostra automaticamente a primeira fala, se houver
-        if self.speech_list:
-            self.speech_bubble.set_text(self.speech_list[self.current_speech_index])
+        
+        # --- LÓGICA DE FALA MODIFICADA (PARA SUPORTAR AMBOS OS SISTEMAS) ---
+        
+        # Prioridade 1: Checa se o passo ANTERIOR mandou uma fala
+        persistent_speech = self.persist.get('override_speech', None)
+        
+        if persistent_speech:
+            speech_data = persistent_speech
+            self.persist['override_speech'] = None # Limpa
+        else:
+            # Prioridade 2: Pega a fala normal deste passo
+            speech_data = step_data.get("professor_speech")
+        
+        # Agora, processa o 'speech_data'
+        self.set_speech(speech_data)
+        # --- FIM DA MODIFICAÇÃO DE FALA ---
             
         if step_data.get("objective"):
             self.objective_list.set_objective(step_data.get("objective"))
@@ -122,40 +178,39 @@ class GameplayState(BaseState):
         if step_data.get("terminal_text"):
             self.terminal.add_to_history(step_data.get("terminal_text"))
 
+        # --- MODIFICAÇÃO PRINCIPAL (Passo 5) ---
         # 5. Configura os componentes de "entrada" (ação)
-        action = step_data.get("action_type")
         
-        if action == "await_command":
-            self.terminal.activate_input(
-                step_data.get("command_prompt"),
-                step_data.get("expected_command")
-            )
-            self.input_box.deactivate()
-            
-        elif action == "ask_question":
-            self.terminal.deactivate_input()
-            self.input_box.activate(
-                step_data.get("question_prompt"),
-                step_data.get("expected_answer")
-            )
-            
-        elif action == "ask_question_branching":
-            self.terminal.deactivate_input()
-            self.input_box.activate(
-                step_data.get("question_prompt"),
-                step_data.get("answer_handlers")
-            )
-            
-        elif action == "auto_proceed":
-            self.terminal.deactivate_input()
-            self.input_box.deactivate()
-            # Ativa o timer para avançar automaticamente
-            self.auto_proceed_timer = pygame.time.get_ticks()
-            self.auto_proceed_delay = step_data.get("next_step_delay", 1000)
-            
-        else: # Caso padrão (ex: fim do jogo)
-            self.terminal.deactivate_input()
-            self.input_box.deactivate()
+        # Se NÃO estivermos em modo de multi-fala, ativa o input agora.
+        if not self.speech_list:
+            self.activate_input_for_current_step()
+        # Se ESTIVERMOS em modo multi-fala, não faz nada.
+        # O 'advance_speech' vai chamar 'activate_input_for_current_step'
+        # quando a última fala for exibida.
+        # --- FIM DA MODIFICAÇÃO ---
+
+    # --- NOVA FUNÇÃO AUXILIAR ---
+    def set_speech(self, speech_data):
+        """
+        Processa um 'speech_data' e decide se é
+        uma fala única ou uma lista de falas.
+        """
+        # Limpa o indicador por padrão
+        self.speech_bubble.set_indicator(False) 
+
+        if isinstance(speech_data, (list, tuple)):
+            # É uma lista de falas!
+            self.speech_list = speech_data
+            self.current_speech_index = 0 # Reseta o índice
+            self.advance_speech() # Mostra a *primeira* fala da lista
+        elif speech_data:
+            # É uma fala única (string)
+            self.speech_list = None # Garante que está limpo
+            self.speech_bubble.set_text(speech_data)
+        else:
+            # Não há fala (string vazia ou None)
+            self.speech_list = None
+            self.speech_bubble.set_text("")
 
     def proceed_to_next_step(self):
         """Função helper para carregar o próximo passo."""
@@ -164,66 +219,94 @@ class GameplayState(BaseState):
         
         self.load_story_step(self.current_step + 1)
 
+    # --- FUNÇÃO 'handle_event' MODIFICADA E REORGANIZADA ---
     def handle_event(self, event):
         """
         Passa os eventos (teclado/mouse) para o componente ATIVO.
         """
         super().handle_event(event) # Lida com o evento QUIT
         
-        result = None
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if self.speech_list:
-                self.advance_speech()
+        # --- REORGANIZAÇÃO DE PRIORIDADE ---
+        
+        # Prioridade 1: Imagem de evento (Facebook)
         if self.showing_event_image:
-            # Se estivermos mostrando uma imagem de evento,
-            # qualquer clique fecha a imagem e retorna ao input.
-            
-            super().handle_event(event)  # Lida com o evento QUIT
-
             if event.type == pygame.MOUSEBUTTONDOWN:
                 self.close_event_image()
-            return
+            return # Ignora todo o resto
 
-        # 1. O Terminal está ativo?
+        # Prioridade 2: Avançar fala com clique
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            # Checa se o clique foi DENTRO do balão de fala
+            if self.speech_bubble.rect.collidepoint(event.pos):
+                if self.speech_list: # Se estivermos em modo de multi-fala
+                    self.advance_speech()
+                    # Se avançamos a fala, não queremos que o clique
+                    # "caia" para o terminal ou input_box
+                    return 
+
+        # Prioridade 3: Input do jogador (Terminal ou Caixa)
+        result = None
         if self.terminal.is_active:
             result = self.terminal.handle_event(event)
             if result == "correct_command":
                 self.proceed_to_next_step()
             elif result == "incorrect_command":
-                # Dá um feedback de comando errado
-                self.speech_bubble.set_text("Não... não é esse o comando.")
+                # <-- MODIFICAÇÃO: Usa set_speech
+                self.set_speech("Não... não é esse o comando.")
                 
-        # 2. A Caixa de Resposta está ativa?
         elif self.input_box.is_active:
             result = self.input_box.handle_event(event)
             
             if result == "correct":
                 self.proceed_to_next_step()
             elif result == "incorrect":
-                self.speech_bubble.set_text("Não, não é isso... Tente de novo.")
+                # <-- MODIFICAÇÃO: Usa set_speech
+                self.set_speech("Não, não é isso... Tente de novo.")
             elif result == "invalid_option":
-                self.speech_bubble.set_text("Isso não parece ser um dos serviços da lista.")
+                # <-- MODIFICAÇÃO: Usa set_speech
+                self.set_speech("Isso não parece ser um dos serviços da lista.")
+            
+            # --- LÓGICA DE EVENTO MODIFICADA (INCLUINDO LÓGICA FALTANTE) ---
             elif isinstance(result, dict):
-                # É um evento de ramificação! (ex: facebook)
-                self.handle_branch_event(result)
+                action = result.get("action")
+                
+                if action == "show_event":
+                    self.handle_branch_event(result) 
+                
+                # (Lógica do "auto_proceed" que fizemos antes)
+                elif action == "show_speech_and_proceed":
+                    # (Esta função é adicionada abaixo)
+                    self.handle_speech_and_proceed(result) 
+                
+                # (Lógica do "sim"/"nao" que fizemos antes)
+                elif action == "proceed_with_speech":
+                    # 1. Armazena a fala para o PRÓXIMO passo
+                    self.persist['override_speech'] = result.get("professor_speech")
+                    # 2. Avança IMEDIATAMENTE
+                    self.proceed_to_next_step()
 
     def handle_branch_event(self, event_data):
         """Lida com as respostas que não avançam a história."""
+        
+        # (Seu código antigo de 'ssh_ok_event' e 'show_ssh_explanation')
         if event_data.get("action") == "ssh_ok_event":
             print("Entrou aqui")
             next_step = event_data.get("next_step")
-            self.speech_bubble.set_text(event_data.get("professor_speech"))
+            # <-- MODIFICAÇÃO: Usa a nova função
+            self.set_speech(event_data.get("professor_speech"))
             self.load_story_step(next_step)
             
         if event_data.get("action") == "show_ssh_explanation":
             next_step = event_data.get("next_step")
-            self.speech_bubble.set_text(event_data.get("professor_speech"))
+            # <-- MODIFICAÇÃO: Usa a nova função
+            self.set_speech(event_data.get("professor_speech"))
             self.load_story_step(next_step)
 
         if event_data.get("action") == "show_event":
             # Atualiza a fala do professor
             if event_data.get("professor_speech"):
-                self.speech_bubble.set_text(event_data.get("professor_speech"))
+                # <-- MODIFICAÇÃO: Usa a nova função
+                self.set_speech(event_data.get("professor_speech"))
             
             # Mostra a imagem no terminal
             image_path = event_data.get("terminal_event_display")
@@ -234,18 +317,36 @@ class GameplayState(BaseState):
                 self.event_image_timer = pygame.time.get_ticks()
 
             # TODO: Tocar o 'sound_effect'
-            # (Exigiria inicializar pygame.mixer)
             
             # Importante: NÃO avançamos a história.
-            # O jogador é forçado a tentar outra resposta. 
-               
+            
+    # --- FUNÇÃO 'advance_speech' MODIFICADA ---
     def advance_speech(self):
-        if self.speech_list:
-            if self.current_speech_index < len(self.speech_list):
-                self.speech_bubble.set_text(self.speech_list[self.current_speech_index])
-                self.current_speech_index += 1
-            else:
-                self.speech_bubble.set_text(self.speech_list[self.current_speech_index-1])
+        """Avança o índice da fala, atualiza o balão E o indicador."""
+        if not self.speech_list: # Checagem de segurança
+            return
+
+        if self.current_speech_index >= len(self.speech_list):
+             # Apenas re-exibe a última fala (índice -1) para não quebrar.
+             self.speech_bubble.set_text(self.speech_list[-1])
+             # E o mais importante: NÃO faz mais nada. Não incrementa, não ativa o input.
+             return
+
+        # Mostra a fala ANTES de incrementar
+        self.speech_bubble.set_text(self.speech_list[self.current_speech_index])
+        
+        # Avança o índice
+        self.current_speech_index += 1
+        
+        # Agora, checa se acabamos
+        if self.current_speech_index == len(self.speech_list):
+            # Acabamos de mostrar a ÚLTIMA fala
+            self.speech_bubble.set_indicator(False) # <-- NOVO
+            self.activate_input_for_current_step() # <-- NOVO: Ativa o input
+        else:
+            # Ainda há mais falas
+            self.speech_bubble.set_indicator(True) # <-- NOVO
+            
     def update(self, dt):
         """
         Atualiza todos os componentes (para cursores piscando)
@@ -286,3 +387,15 @@ class GameplayState(BaseState):
         self.speech_bubble.draw(screen)
         self.terminal.draw(screen)
         self.input_box.draw(screen)
+
+    # --- NOVO (Função que estava faltando) ---
+    def handle_speech_and_proceed(self, event_data):
+        """
+        Mostra uma nova fala e, em seguida,
+        ativa o timer para avançar para o próximo passo.
+        """
+        # <-- MODIFICAÇÃO: Usa a nova função
+        self.set_speech(event_data.get("professor_speech"))
+        self.auto_proceed_timer = pygame.time.get_ticks()
+        self.auto_proceed_delay = event_data.get("next_step_delay", 1000)
+        self.terminal.show_event_image(None)

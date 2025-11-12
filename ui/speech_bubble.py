@@ -29,6 +29,8 @@ class SpeechBubble:
         # self.rendered_lines será uma lista de Pygame Surfaces,
         # prontas para serem desenhadas (blitted).
         self.rendered_lines = []
+
+        
         
         # --- Fonte ---
         try:
@@ -54,6 +56,22 @@ class SpeechBubble:
             # E guardamos as cores do fallback
             self.fallback_bg = COLOR_BUBBLE_BG
             self.fallback_border = COLOR_BUBBLE_BORDER
+
+        #self.padding = 10 
+
+        # --- Variável do Indicador ---
+        self.show_indicator = False
+        self.indicator_text = "▼" # O ícone de "mais texto"
+        try:
+            self.indicator_font = pygame.font.SysFont('Arial', 24, bold=True)
+        except:
+            self.indicator_font = pygame.font.SysFont('sans-serif', 24, bold=True)
+        self.indicator_color = COLOR_BUBBLE_TEXT
+        
+        # --- Pré-renderizar o indicador ---
+        self.indicator_surface = self.indicator_font.render(
+            self.indicator_text, True, self.indicator_color
+        )
 
     def set_text(self, new_text):
         """
@@ -88,7 +106,11 @@ class SpeechBubble:
         if current_line_str:
             line_surface = self.font.render(current_line_str, True, self.text_color)
             self.rendered_lines.append(line_surface)
-            
+
+    def set_indicator(self, show_it):
+        """Ativa ou desativa o indicador de 'mais texto'."""
+        self.show_indicator = show_it
+
     def update(self):
         """
         Função de atualização.
@@ -129,3 +151,9 @@ class SpeechBubble:
             
             # Move o Y para a próxima linha
             y_pos += self.line_height
+
+        if self.show_indicator:
+            # Posição: Canto inferior direito, dentro do padding
+            x_pos = self.rect.right - self.padding - self.indicator_surface.get_width()
+            y_pos = self.rect.bottom - self.padding - self.indicator_surface.get_height()
+            screen.blit(self.indicator_surface, (x_pos, y_pos))
