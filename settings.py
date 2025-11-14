@@ -1,53 +1,32 @@
 #
 # Arquivo: settings.py
+# (Com layout proporcional)
 #
 import pygame
 
-# --- Configurações Gerais da Tela ---
-SCREEN_WIDTH = 1024
-SCREEN_HEIGHT = 768
+# --- 1. MUDE AQUI O TAMANHO DA TELA ---
+# Tente 800x600, ou o que couber no seu notebook
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+# --- FIM DA MUDANÇA PRINCIPAL ---
+
 FPS = 60
 
 # --- Padding (Espaçamento) ---
+# Deixar o padding fixo em 10 pixels geralmente funciona bem
 PADDING = 10
 
-# --- Definições de Cores (Centralizadas) ---
-# (Cores de texto, etc., podem ser movidas das classes de UI para cá)
+# --- Definições de Cores (Sem mudança) ---
 WHITE = (255, 255, 255)
 BLACK = (10, 10, 10)
-GREY = (100, 100, 100)
-LIGHT_GREY = (230, 230, 230)
-DARK_GREY = (30, 30, 30)
-
-# Cores do Terminal
-COLOR_TERMINAL_BG = (10, 10, 25)
-COLOR_TERMINAL_TEXT = (25, 255, 25)
-COLOR_TERMINAL_PROMPT = (100, 255, 100)
-
-# Cores do Painel de Objetivos
-COLOR_PANEL_BG = (20, 20, 30)
-COLOR_TITLE_TEXT = (255, 255, 100)
-COLOR_OBJECTIVE_TEXT = (220, 220, 220)
-
-# Cores do Balão de Fala
-COLOR_BUBBLE_BG = LIGHT_GREY
-COLOR_BUBBLE_TEXT = BLACK
-
-# Cores da Caixa de Entrada
-COLOR_INPUT_BG = DARK_GREY
-COLOR_INPUT_PROMPT = COLOR_TITLE_TEXT
-COLOR_INPUT_TEXT = WHITE
-
-# --- Definições de Fontes (Opcional, mas recomendado) ---
-FONT_MONO = 'Consolas' # Ou 'monospace'
-FONT_SANS = 'Arial' # Ou 'sans-serif'
-FONT_SIZE_SM = 16
-FONT_SIZE_MD = 18
+# ... (e todas as suas outras cores) ...
 
 # --- Layout (Os Retângulos de Posição) ---
+# AGORA TUDO É CALCULADO COM BASE NO TAMANHO DA TELA
 
 # 1. Barra Lateral Esquerda (Professor e Objetivos)
-LEFT_PANEL_WIDTH = 240
+# (O painel tinha 240px de largura quando a tela era 1024px)
+LEFT_PANEL_WIDTH = int(SCREEN_WIDTH * (240 / 1024)) # <-- Mágica proporcional
 LEFT_PANEL_RECT = pygame.Rect(
     PADDING,
     PADDING,
@@ -55,10 +34,9 @@ LEFT_PANEL_RECT = pygame.Rect(
     SCREEN_HEIGHT - (PADDING * 2)
 )
 
-# 1a. Posição da Imagem do Professor (dentro do painel esquerdo)
-# (Assumindo uma imagem quadrada)
+# 1a. Posição da Imagem do Professor (se ajusta ao painel)
 PROFESSOR_IMAGE_WIDTH = LEFT_PANEL_WIDTH - (PADDING * 2)
-PROFESSOR_IMAGE_HEIGHT = PROFESSOR_IMAGE_WIDTH
+PROFESSOR_IMAGE_HEIGHT = PROFESSOR_IMAGE_WIDTH # Mantém quadrado
 PROFESSOR_RECT = pygame.Rect(
     LEFT_PANEL_RECT.left + PADDING,
     LEFT_PANEL_RECT.top + PADDING,
@@ -66,35 +44,33 @@ PROFESSOR_RECT = pygame.Rect(
     PROFESSOR_IMAGE_HEIGHT
 )
 
-# 1b. Posição da Lista de Objetivos (dentro do painel esquerdo, abaixo do professor)
+# 1b. Posição da Lista de Objetivos (preenche o resto do painel)
 OBJECTIVE_LIST_RECT = pygame.Rect(
     LEFT_PANEL_RECT.left,
     PROFESSOR_RECT.bottom + PADDING,
     LEFT_PANEL_RECT.width,
-    LEFT_PANEL_RECT.height - PROFESSOR_RECT.height - PADDING
+    LEFT_PANEL_RECT.height - PROFESSOR_RECT.height - PADDING * 2 # Ajuste de padding
 )
 
 # 2. Barra Inferior (Caixa de Entrada de Texto)
-INPUT_BOX_HEIGHT = 100
+# (Tinha 100px de altura quando a tela era 768px)
+INPUT_BOX_HEIGHT = int(SCREEN_HEIGHT * (100 / 768)) # <-- Mágica proporcional
 INPUT_BOX_RECT = pygame.Rect(
-    LEFT_PANEL_RECT.right + PADDING, # Começa à direita do painel esquerdo
+    LEFT_PANEL_RECT.right + PADDING, 
     SCREEN_HEIGHT - INPUT_BOX_HEIGHT - PADDING,
     SCREEN_WIDTH - LEFT_PANEL_RECT.right - (PADDING * 2), # Largura restante
     INPUT_BOX_HEIGHT
 )
 
 # 3. Balão de Fala (Acima do Terminal)
-NOVA_LARGURA_BALAO = 750 
-NOVA_ALTURA_BALAO = 160
-
-SPEECH_BUBBLE_HEIGHT = NOVA_ALTURA_BALAO
+# (Tinha 120px de altura quando a tela era 768px)
+SPEECH_BUBBLE_HEIGHT = int(SCREEN_HEIGHT * (160 / 768)) # <-- Mágica proporcional
 SPEECH_BUBBLE_RECT = pygame.Rect(
     LEFT_PANEL_RECT.right + PADDING,
     PADDING,
-    NOVA_LARGURA_BALAO, # Mesma largura da caixa de entrada
-    NOVA_ALTURA_BALAO
+    INPUT_BOX_RECT.width, # Mesma largura da caixa de entrada
+    SPEECH_BUBBLE_HEIGHT
 )
-
 
 # 4. Terminal (O restante do espaço)
 TERMINAL_RECT = pygame.Rect(

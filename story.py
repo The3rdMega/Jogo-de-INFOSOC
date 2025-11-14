@@ -3,9 +3,11 @@
 STORY_STEPS = [
     { # Passo 1: Explicação da SSH
         "professor_speech": (
+            "Ok, hora de gravar a aula de amanhã.",
             "Primeiro, vamos checar a SSH.",
             "Eu tenho o log habilitado.",
-            "As vezes a gente acha alguma coisa lá." 
+            "Gosto de checar sempre que abro o PC.",
+            "Você sabe o que é SSH?",
         ),
         "terminal_text": "", 
         "objective": "Cheque a sua SSH para validar possíveis invasões.", 
@@ -14,7 +16,7 @@ STORY_STEPS = [
         "answer_handlers":{
             "sim" : {
                 "action" : "proceed_with_speech",
-                "professor_speech" : ("Ah, ainda bem que não estou lidando com um leigo.", "Pode entrar, é só digitar ssh prof_larcerinho@192.158.1.1"),
+                "professor_speech" : ("Ah, ainda bem que não estou lidando com um leigo.", "Pode entrar, é só digitar ssh prof_larcerinho@192.158.1.1, eu vou mudar depois, nem memoriza em!"),
             },
             "nao" : {
                 "action" : "proceed_with_speech",
@@ -25,7 +27,7 @@ STORY_STEPS = [
                                       "Esse log é um arquivo de texto que anota *toda* tentativa de conexão, seja ela bem-sucedida ou falha.",
                                       "Se alguém tentar 'bater na porta', o log me diz quem foi, quando tentou e qual 'chave' usou.",
                                       "É uma das melhores ferramentas de segurança para saber se alguém andou bisbilhotando.",
-                                      "Enfim, pra entrar é só fazer ssh prof_larcerinho@192.158.1.1"),
+                                      "Enfim, pra entrar é só fazer ssh prof_larcerinho@192.158.1.1, eu vou mudar depois, nem memoriza em!"),
             }
         }
     },
@@ -80,6 +82,9 @@ STORY_STEPS = [
     },
     { # Passo 5: Espera o comando 'vim' (COMANDO)
         "professor_speech": ("É, sabia que... ter esse txt ia me complicar.",
+                             "Não é seguro manter todas as suas senhas em um só arquivo.",
+                             "Se você realmente tem que guardar em algum lugar... use um gerenciador de senhas!",
+                             "Ou só anote na vida real mesmo, em um caderninho. Muito mais seguro.",
                              "Vamos ver o que tem dentro dele"),
         "terminal_text": "...", 
         "objective": "Use 'vim senhas.txt' para ver o arquivo de senhas.",
@@ -91,12 +96,12 @@ STORY_STEPS = [
     # --- MUDANÇA PRINCIPAL DA RAMIFICAÇÃO ---
     
     { # Passo 6: 'vim' funciona, MOSTRA O ARQUIVO E FAZ A PERGUNTA
-        "professor_speech": ("Ok, o que vamos checar primeiro?",), # Fala antiga
+        "professor_speech": ("Ok, são todas as minhas senhas, vou mudar depois, mas preciso descobrir se algo foi acessado","Ok, o que vamos checar primeiro?",), # Fala antiga
         "terminal_text": (
             "--- Conteúdo de senhas.txt ---\n"
             "facebook: larcerinhoMadeira@gmail.com | euAmoBolosDeChocolate\n"
             "instagram: larceirinhoMadeira@gmail.com | euGostoDeGatinhos\n"
-            "sigaa: 2345meia78@unb.br | euOdeioCorrigirProvaDeAlunoBurro\n"
+            "sigaa: 2345meia78@unb.br | euAmoCorrigirProva\n"
             "ifood: larcerinhoMadeira@gmail.com | Guitarra$L4r"
         ),
         "objective": "Investigue os serviços roubados",
@@ -128,7 +133,7 @@ STORY_STEPS = [
             },
             "ifood": {
                 "action": "show_event", # Não avança
-                "professor_speech": ("Opa... não, não preciso nem checar. Cancele essa pizza.",),
+                "professor_speech": ("Enviaram uma pizza pra minha casa!?! Cancela isso!",),
                 "terminal_event_display": None,
                 "sound_effect": "ding_dong.wav"
             }
@@ -172,7 +177,7 @@ STORY_STEPS = [
         "terminal_text": (
             "user@professor-pc:~$ whois 189.12.55.10\n\n"
             "inetnum: 189.12.55.0 - 189.12.55.255\n"
-            "owner: Joao 'Hackerman' da Silva\n"
+            "owner: >>Redacted<<\n"
             "address: SQN 210 Bloco Z Apto 101\n"
             "city: Brasília\n"
             "country: BR"

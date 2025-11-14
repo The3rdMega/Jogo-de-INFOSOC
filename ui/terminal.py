@@ -37,7 +37,7 @@ class InteractiveTerminal:
         # mas por simplicidade, vamos carregar aqui)
         try:
             # Tenta carregar uma fonte monoespaçada legal
-            self.font = pygame.font.SysFont('ByteBounce', 32)
+            self.font = pygame.font.SysFont('ByteBounce', 26)
         except:
             # Fallback
             self.font = pygame.font.SysFont('monospace', 16)
