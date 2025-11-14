@@ -153,6 +153,39 @@ STORY_STEPS = [
         "action_type": "auto_proceed",
         "next_step_delay": 3000
     },
+    {
+        "professor_speech": ("Espera, algumas notas são maiores que as originais!", 
+                             "Quem quer que tenha feito isso é um deles...", 
+                             "Olhe esta imagem. Qual o primeiro aluno com nota maior que o normal?"),
+        "terminal_text": "...", 
+        "objective": "Consiga informações sobre o ataque.",
+        "action_type": "ask_question",
+        "question_prompt": "Qual é o primeiro aluno com nota maior que o normal?",
+        "expected_answer": "Gustavo Borges",
+        
+        # --- CARREGA A IMAGEM ---
+        "terminal_event_display": "assets/images/notas_completas.png"
+    },
+    {
+        "professor_speech": ("Tem mais outros...",),
+        "terminal_text": "...", 
+        "objective": "Consiga informações sobre o ataque.",
+        "action_type": "ask_question",
+        "question_prompt": "Qual é o segundo aluno com nota maior que o normal?",
+        "expected_answer": "Luigi Macedo",
+
+        "terminal_event_display": "assets/images/notas_completas.png"  
+    },
+    {
+        "professor_speech": ("Tem mais outros...",),
+        "terminal_text": "...", 
+        "objective": "Consiga informações sobre o ataque.",
+        "action_type": "ask_question",
+        "question_prompt": "Qual é o terceiro aluno com nota maior que o normal?",
+        "expected_answer": "Joao da Silva",
+        
+        "terminal_event_display": "assets/images/notas_completas.png"
+    },
     { # Passo 8: Professor age (AUTO)
         "professor_speech": ("Vou corrigir isso agora... e mudar todas elas.",),
         "terminal_text": (

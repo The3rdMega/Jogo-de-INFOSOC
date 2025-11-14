@@ -156,21 +156,15 @@ class GameplayState(BaseState):
         
         # 4. Atualiza os componentes de "saída" (display)
         
-        # --- LÓGICA DE FALA MODIFICADA (PARA SUPORTAR AMBOS OS SISTEMAS) ---
-        
-        # Prioridade 1: Checa se o passo ANTERIOR mandou uma fala
+        # --- LÓGICA DE FALA (Sua lógica atual, está perfeita) ---
         persistent_speech = self.persist.get('override_speech', None)
-        
         if persistent_speech:
             speech_data = persistent_speech
-            self.persist['override_speech'] = None # Limpa
+            self.persist['override_speech'] = None 
         else:
-            # Prioridade 2: Pega a fala normal deste passo
             speech_data = step_data.get("professor_speech")
-        
-        # Agora, processa o 'speech_data'
         self.set_speech(speech_data)
-        # --- FIM DA MODIFICAÇÃO DE FALA ---
+        # --- FIM DA LÓGICA DE FALA ---
             
         if step_data.get("objective"):
             self.objective_list.set_objective(step_data.get("objective"))
@@ -178,16 +172,29 @@ class GameplayState(BaseState):
         if step_data.get("terminal_text"):
             self.terminal.add_to_history(step_data.get("terminal_text"))
 
-        # --- MODIFICAÇÃO PRINCIPAL (Passo 5) ---
-        # 5. Configura os componentes de "entrada" (ação)
+        # --- MODIFICAÇÃO PRINCIPAL: LÓGICA DE IMAGEM ---
+        image_path = step_data.get("terminal_event_display")
         
-        # Se NÃO estivermos em modo de multi-fala, ativa o input agora.
-        if not self.speech_list:
+        if image_path is None:
+            # Chave NÃO existe = limpa a imagem (default)
+            self.terminal.show_event_image(None)
+            self.showing_event_image = False # Garante que a flag de clique é resetada
+        elif image_path == "...":
+            # Chave existe e é "..." = não faz nada, mantém a imagem
+            pass 
+        else:
+            # Chave existe e é um path = carrega a nova imagem
+            self.terminal.show_event_image(image_path)
+            # Nota: Não ativamos 'showing_event_image'
+            # pois não queremos que ela seja "clicável" para fechar.
+            # Ela é um fundo de evidência.
+        
+
+        # 5. Configura os componentes de "entrada" (ação)
+        action = step_data.get("action_type")
+        
+        if not self.speech_list: # (Sua lógica de "input paciente", está perfeita)
             self.activate_input_for_current_step()
-        # Se ESTIVERMOS em modo multi-fala, não faz nada.
-        # O 'advance_speech' vai chamar 'activate_input_for_current_step'
-        # quando a última fala for exibida.
-        # --- FIM DA MODIFICAÇÃO ---
 
     # --- NOVA FUNÇÃO AUXILIAR ---
     def set_speech(self, speech_data):
@@ -215,7 +222,7 @@ class GameplayState(BaseState):
     def proceed_to_next_step(self):
         """Função helper para carregar o próximo passo."""
         # Limpa qualquer imagem de evento (ex: Minions)
-        self.terminal.show_event_image(None)
+        #self.terminal.show_event_image(None)
         
         self.load_story_step(self.current_step + 1)
 
