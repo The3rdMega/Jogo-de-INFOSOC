@@ -11,7 +11,7 @@ from settings import SCREEN_WIDTH, SCREEN_HEIGHT, FPS
 # Por enquanto, só temos o GameplayState.
 from states.gameplay import GameplayState
 # TODO: Importar o CutsceneState quando ele for criado
-# from states.cutscene import CutsceneState 
+from states.cutscene import CutsceneState 
 
 
 class Game:
@@ -47,7 +47,7 @@ class Game:
         """
         
         # TODO: Adicionar o estado de Cutscene aqui
-        # self.states["CUTSCENE"] = CutsceneState()
+        self.states["CUTSCENE"] = CutsceneState()
         
         self.states["GAMEPLAY"] = GameplayState()
         

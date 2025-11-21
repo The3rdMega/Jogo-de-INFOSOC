@@ -4,6 +4,11 @@
 #
 import pygame
 
+COLOR_PANEL_BG = (20, 20, 30)      # Um azul-escuro/cinza
+COLOR_PANEL_BORDER = (100, 100, 100) # Cinza
+COLOR_TITLE_TEXT = (255, 255, 100) # Amarelo, para "OBJETIVOS"
+COLOR_OBJECTIVE_TEXT = (220, 220, 220) # Branco-cinza
+
 # --- 1. MUDE AQUI O TAMANHO DA TELA ---
 # Tente 800x600, ou o que couber no seu notebook
 SCREEN_WIDTH = 800
@@ -79,3 +84,8 @@ TERMINAL_RECT = pygame.Rect(
     INPUT_BOX_RECT.width, # Mesma largura
     INPUT_BOX_RECT.top - SPEECH_BUBBLE_RECT.bottom - (PADDING * 2) # Altura restante
 )
+
+# 5. Sistema de Vida
+MAX_STRIKES = 5
+COLOR_STRIKE_GOOD = (50, 255, 50) # Verde
+COLOR_STRIKE_BAD = (255, 50, 50)   # Vermelho

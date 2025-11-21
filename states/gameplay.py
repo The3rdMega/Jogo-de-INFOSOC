@@ -66,7 +66,46 @@ class GameplayState(BaseState):
         self.input_box = TextInputBox(INPUT_BOX_RECT)
         self.speech_bubble = SpeechBubble(SPEECH_BUBBLE_RECT)
         self.objective_list = ObjectiveList(OBJECTIVE_LIST_RECT)
+
+
+        # Sistema de Vida
+        self.strikes = MAX_STRIKES
         
+
+    def take_damage(self):
+        """Reduz uma vida e checa Game Over."""
+        self.strikes -= 1
+        
+        # Atualiza a UI
+        self.objective_list.set_strikes(self.strikes)
+        
+        # Feedback visual/sonoro (Opcional: Tremer tela, som de erro)
+        print(f"DANO! Strikes restantes: {self.strikes}")
+        
+        # Checa Game Over
+        if self.strikes <= 0:
+            self.trigger_game_over()
+        else:
+            # Feedback do professor
+            self.set_speech("Cuidado! Se errarmos muito, eles vão perceber nossa conexão!")
+
+    def trigger_game_over(self):
+        """Transiciona para a tela de derrota (Ransomware)."""
+        
+        # Define para onde vamos (Reusando a CutsceneState!)
+        self.next_state = "CUTSCENE" 
+        
+        # Configura a Cutscene de Game Over
+        self.persist = {
+            'image_path': "assets/images/ransomware_screen.png", # Crie esta imagem!
+            'title': "CONEXÃO PERDIDA",
+            'subtitle': "Ransomware detectado. Sistema comprometido.",
+            'duration': 5000,
+            'wait_for_input': True,
+            'next_state': "GAMEPLAY" # Reinicia o jogo (ou vai para Menu)
+        }
+        
+        self.done = True # Encerra o GameplayState atual
 
     def close_event_image(self):
         """
@@ -83,17 +122,29 @@ class GameplayState(BaseState):
         self.set_speech(step_data.get("professor_speech"))
     
     def startup(self, persistent_data):
-        """Chamado uma vez quando o estado começa (depois da cutscene)."""
+        """Chamado uma vez quando o estado começa ou RECOMEÇA."""
         super().startup(persistent_data)
         
-        # <-- NOVO: Adiciona a lógica de persistência que fizemos antes
+        # 1. Reseta a Lógica de Jogo
         self.persist['override_speech'] = None 
-
-        # Reseta o estado
         self.current_step = 0
-        self.terminal.clear_history()
         
-        # Carrega o primeiro passo da história
+        # --- CORREÇÃO DAS VIDAS ---
+        self.strikes = MAX_STRIKES # Reseta o contador interno
+        self.objective_list.set_strikes(self.strikes) # Atualiza a barra visual
+        
+        # 2. Reseta os Componentes de UI (Limpeza total)
+        self.terminal.clear_history()     # Apaga o texto antigo
+        self.terminal.deactivate_input()  # BLOQUEIA a digitação no terminal
+        self.input_box.deactivate()       # Bloqueia a caixa de perguntas
+        
+        # 3. Reseta Imagens e Timers
+        self.terminal.show_event_image(None)
+        self.showing_event_image = False
+        self.auto_proceed_timer = None
+        self.event_image_timer = None
+        
+        # 4. Carrega o primeiro passo da história do zero
         self.load_story_step(self.current_step)
 
     # --- NOVA FUNÇÃO AUXILIAR ---
@@ -258,8 +309,7 @@ class GameplayState(BaseState):
             if result == "correct_command":
                 self.proceed_to_next_step()
             elif result == "incorrect_command":
-                # <-- MODIFICAÇÃO: Usa set_speech
-                self.set_speech("Não... não é esse o comando.")
+                self.take_damage()
                 
         elif self.input_box.is_active:
             result = self.input_box.handle_event(event)
@@ -267,8 +317,7 @@ class GameplayState(BaseState):
             if result == "correct":
                 self.proceed_to_next_step()
             elif result == "incorrect":
-                # <-- MODIFICAÇÃO: Usa set_speech
-                self.set_speech("Não, não é isso... Tente de novo.")
+                self.take_damage()
             elif result == "invalid_option":
                 # <-- MODIFICAÇÃO: Usa set_speech
                 self.set_speech("Isso não parece ser um dos serviços da lista.")
