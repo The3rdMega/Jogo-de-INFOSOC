@@ -1,16 +1,15 @@
 #
 # Arquivo: main.py
-# (O ponto de entrada do seu jogo)
+# (Com redimensionamento de janela e escala de proporção)
 #
 import pygame
 
 # Importa as constantes (tamanho da tela, FPS)
-from settings import SCREEN_WIDTH, SCREEN_HEIGHT, FPS
+# Adicionamos GAME_WIDTH e GAME_HEIGHT que definimos no settings.py
+from settings import SCREEN_WIDTH, SCREEN_HEIGHT, GAME_WIDTH, GAME_HEIGHT, FPS
 
 # Importa os "estados" do jogo.
-# Por enquanto, só temos o GameplayState.
 from states.gameplay import GameplayState
-# TODO: Importar o CutsceneState quando ele for criado
 from states.cutscene import CutsceneState 
 
 
@@ -24,34 +23,84 @@ class Game:
         """Inicializa o Pygame e a janela."""
         pygame.init()
         
-        # Cria a tela principal
-        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        # 1. Cria a Janela Real (Redimensionável)
+        # A flag pygame.RESIZABLE permite que o usuário mude o tamanho ou maximize
+        self.window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
         pygame.display.set_caption("O Hack da UnB")
+        
+        # 2. Cria a "Tela Falsa" (Resolução Fixa)
+        # Onde o jogo será desenhado internamente (ex: 800x600)
+        self.fake_screen = pygame.Surface((GAME_WIDTH, GAME_HEIGHT))
         
         # Cria o relógio para controlar o FPS
         self.clock = pygame.time.Clock()
         
         # Variáveis de controle do loop
         self.running = True
-        self.dt = 0 # Delta Time (tempo desde o último frame)
+        self.dt = 0 # Delta Time
+        
+        # --- Variáveis de Escala (NOVO) ---
+        self.scale_ratio = 1.0
+        self.offset_x = 0
+        self.offset_y = 0
+        self.calculate_scale() # Calcula a escala inicial
         
         # --- A Máquina de Estados ---
-        self.states = {} # Dicionário para guardar todos os estados
-        self.current_state_name = None # O nome do estado ativo (ex: "GAMEPLAY")
-        self.current_state = None # O objeto do estado ativo
+        self.states = {} 
+        self.current_state_name = None 
+        self.current_state = None 
         
+    def calculate_scale(self):
+        """
+        Calcula como esticar a tela falsa para caber na janela
+        mantendo a proporção (Aspect Ratio).
+        """
+        window_w, window_h = self.window.get_size()
+        
+        # Descobre qual lado "limita" o crescimento (largura ou altura)
+        scale_w = window_w / GAME_WIDTH
+        scale_h = window_h / GAME_HEIGHT
+        self.scale_ratio = min(scale_w, scale_h)
+        
+        # Tamanho final da imagem do jogo na tela
+        self.render_w = int(GAME_WIDTH * self.scale_ratio)
+        self.render_h = int(GAME_HEIGHT * self.scale_ratio)
+        
+        # Centraliza a imagem na janela (calcula as barras pretas)
+        self.offset_x = (window_w - self.render_w) // 2
+        self.offset_y = (window_h - self.render_h) // 2
+
+    def correct_mouse_position(self, event):
+        """
+        Traduz a posição do mouse da JANELA REAL para a TELA FALSA.
+        """
+        if hasattr(event, 'pos'):
+            # Pega a posição real do mouse
+            mx, my = event.pos
+            
+            # Remove as barras pretas (offset)
+            mx -= self.offset_x
+            my -= self.offset_y
+            
+            # Desfaz a escala (divide pelo ratio)
+            mx /= self.scale_ratio
+            my /= self.scale_ratio
+            
+            # Modifica o evento 'in place' para o resto do jogo usar
+            event.pos = (int(mx), int(my))
+            
+        return event
+
     def setup_states(self):
         """
-        Cria as instâncias de todos os estados do jogo
-        e define o estado inicial.
+        Cria as instâncias de todos os estados do jogo.
         """
         
-        # TODO: Adicionar o estado de Cutscene aqui
         self.states["CUTSCENE"] = CutsceneState()
-        
         self.states["GAMEPLAY"] = GameplayState()
         
-        # TODO: Mudar para "CUTSCENE" quando ela estiver pronta
+        # Define o estado inicial
+        # (Se quiser testar a cutscene, mude para "CUTSCENE")
         self.current_state_name = "GAMEPLAY" 
         
         self.current_state = self.states[self.current_state_name]
@@ -62,84 +111,76 @@ class Game:
     def flip_state(self):
         """Função para trocar do estado atual para o próximo."""
         
-        # Pega o nome do próximo estado (ex: "END_SCREEN")
         next_state_name = self.current_state.next_state
-        
-        # Pega os dados persistentes (se houver)
         persistent_data = self.current_state.persist
         
-        # Sinaliza o fim do estado atual
         self.current_state.done = False
         
-        # Se o próximo estado for 'None' ou 'QUIT', fecha o jogo
         if next_state_name is None:
             self.running = False
             return
             
-        # Pega o objeto do próximo estado no dicionário
         self.current_state = self.states[next_state_name]
         self.current_state_name = next_state_name
         
-        # Inicia o novo estado, passando os dados persistentes
         self.current_state.startup(persistent_data)
 
     def event_loop(self):
-        """Processa todos os eventos do Pygame e os passa para o estado ativo."""
+        """Processa todos os eventos."""
         for event in pygame.event.get():
+            
+            # 1. Lida com redimensionamento da janela
+            if event.type == pygame.VIDEORESIZE:
+                self.calculate_scale() 
+                
+            # 2. Corrige o mouse antes de mandar para o jogo
+            if event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.MOUSEMOTION or event.type == pygame.MOUSEBUTTONUP:
+                event = self.correct_mouse_position(event)
+
             self.current_state.handle_event(event)
             
     def update(self):
-        """
-        Atualiza a lógica do estado ativo e checa por
-        sinais de 'quit' ou 'done'.
-        """
-        
-        # Passa o 'dt' (delta time) para o update do estado.
-        # dt é o tempo em segundos desde o último frame.
+        """Atualiza a lógica."""
         self.current_state.update(self.dt)
         
-        # Checa se o estado pediu para fechar o jogo
         if self.current_state.quit:
             self.running = False
-        
-        # Checa se o estado pediu para trocar para o próximo estado
         elif self.current_state.done:
             self.flip_state()
 
     def draw(self):
-        """Limpa a tela e desenha o estado ativo."""
+        """Desenha com escala."""
         
-        # Limpa a tela com uma cor de fundo (ex: preto)
-        self.screen.fill((0, 0, 0))
+        # 1. Desenha o jogo na TELA FALSA (800x600)
+        self.fake_screen.fill((0, 0, 0))
+        # Passamos a fake_screen, não a window real!
+        self.current_state.draw(self.fake_screen)
         
-        # Chama a função 'draw' do estado ativo
-        self.current_state.draw(self.screen)
+        # 2. Escala a tela falsa para o tamanho que cabe na janela
+        scaled_surface = pygame.transform.smoothscale(
+            self.fake_screen, (self.render_w, self.render_h)
+        )
         
-        # Atualiza o display (mostra o que foi desenhado)
+        # 3. Limpa a janela real (preenche as barras pretas)
+        self.window.fill((0, 0, 0))
+        
+        # 4. Cola a imagem do jogo centralizada na janela real
+        self.window.blit(scaled_surface, (self.offset_x, self.offset_y))
+        
+        # Atualiza o display
         pygame.display.flip()
 
     def run(self):
-        """O Loop Principal do Jogo."""
-        
+        """O Loop Principal."""
         while self.running:
-            # 1. Processa Eventos
             self.event_loop()
-            
-            # 2. Atualiza a Lógica
             self.update()
-            
-            # 3. Desenha na Tela
             self.draw()
-            
-            # 4. Controla o FPS
-            # self.dt é guardado em segundos (ex: 0.016)
             self.dt = self.clock.tick(FPS) / 1000.0
             
-        # Fim do loop, fecha o Pygame
         pygame.quit()
 
 
-# --- Ponto de Entrada do Programa ---
 if __name__ == "__main__":
     game = Game()
     game.setup_states()
