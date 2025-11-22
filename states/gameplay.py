@@ -198,6 +198,9 @@ class GameplayState(BaseState):
         self.current_speech_index = 0
         self.speech_list = None
         
+        self.terminal.deactivate_input()
+        self.input_box.deactivate()
+
         self.current_step = step_index
         step_data = STORY_STEPS[self.current_step]
         

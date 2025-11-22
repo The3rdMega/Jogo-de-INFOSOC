@@ -33,7 +33,7 @@ STORY_STEPS = [
     },
     { # Passo 1: OK SSH
         "professor_speech": (
-            "...", # Quero que esse diálogo seja atualizado com o branching acima
+            "...", # Estamos atualizando esse diálogo com o branching acima (sim ou não)
         ),
         "terminal_text": "", 
         "objective": "Cheque a sua SSH para validar possíveis invasões.", 
@@ -41,44 +41,54 @@ STORY_STEPS = [
         "command_prompt": "user@professor-pc:~$", 
         "expected_command": "ssh prof_larcerinho@192.158.1.1",
     },
-    { # Passo 1: O log aparece (AUTO)
+    { # Passo 2: O log aparece (AUTO) - AGORA COMPLEXO
         "professor_speech": (
             "Que ataque que aconteceu aqui?!",
+            "Olha esse log... tem muita sujeira, mas o ataque real está aí no meio.",
+            "Preciso filtrar o que é rotina do sistema e o que é invasão."
         ),
+        # O TEXTO ABAIXO FOI MODIFICADO PARA SER UM PUZZLE VISUAL
         "terminal_text": ( 
-            "PLACEHOLDER!!!! \n"
-            "FAILED login for 'root' from 189.12.55.10 PORT 22\n"
-            "SUCCESS login for 'root' from 189.12.55.10 PORT 22\n"
-            "FILE_ACCESS: User 'root' read /home/senhas.txt\n"
-            "DISCONNECTED."
+            "Last login: Fri Nov 10 09:00:01 from 192.168.0.5\n"
+            "user@server:~$ cat /var/log/auth.log | tail -n 15\n"
+            "Nov 10 09:17:01 server CRON[5401]: (root) CMD (run-parts /etc/cron.hourly)\n"
+            "Nov 10 10:00:23 server sshd[8821]: Invalid user admin from 54.22.11.99\n"
+            "Nov 10 10:00:23 server sshd[8821]: Connection closed by 54.22.11.99 port 44312 [preauth]\n"
+            "Nov 10 10:15:44 server sudo: prof_larcerinho : TTY=pts/0 ; PWD=/home/prof ; USER=root ; COMMAND=/usr/bin/apt update\n"
+            "Nov 10 11:42:05 server sshd[9002]: Failed password for root from 189.12.55.10 port 55210 ssh2\n"
+            "Nov 10 11:42:08 server sshd[9002]: Failed password for root from 189.12.55.10 port 55210 ssh2\n"
+            "Nov 10 11:42:12 server sshd[9002]: Accepted password for root from 189.12.55.10 port 55210 ssh2\n"
+            "Nov 10 11:42:12 server sshd[9002]: pam_unix(sshd:session): session opened for user root by (uid=0)\n"
+            "Nov 10 11:43:05 server AUDIT: type=PATH msg=audit(1700000:01): name=\"/home/senhas.txt\" mode=0100644\n"
+            "Nov 10 11:45:00 server sshd[9002]: Received disconnect from 189.12.55.10 port 55210:11: Disconnected by user"
         ),
         "objective": "Consiga informações sobre o ataque.",
         "action_type": "auto_proceed", 
         "next_step_delay": 1000 
     },
-    { # Passo 2: Pergunta IP (PERGUNTA)
-        "professor_speech": ("Que IP foi esse que me atacou?",), 
+    { # Passo 3: Pergunta IP (PERGUNTA)
+        "professor_speech": ("Que IP foi esse que conseguiu entrar?",), 
         "terminal_text": "...", 
         "objective": "Consiga informações sobre o ataque.",
         "action_type": "ask_question",
-        "question_prompt": "Qual IP realizou o ataque?",
+        "question_prompt": "Qual IP realizou o ataque com SUCESSO?", # Pergunta mais específica
         "expected_answer": "189.12.55.10"
     },
-    { # Passo 3: Pergunta Usuário (PERGUNTA)
-        "professor_speech": ("Certo... e qual usuário ele tentou acessar?",),
+    { # Passo 4: Pergunta Usuário (PERGUNTA)
+        "professor_speech": ("Certo... e qual usuário ele violou?",),
         "terminal_text": "...",
         "objective": "Descubra o que aconteceu",
         "action_type": "ask_question",
-        "question_prompt": "Qual usuário ele tentou acessar?",
+        "question_prompt": "Qual usuário do sistema ele acessou?",
         "expected_answer": "root"
     },
-    { # Passo 4: Pergunta Arquivo (PERGUNTA)
-        "professor_speech": ("E qual arquivo ele acessou?",),
+    { # Passo 5: Pergunta Arquivo (PERGUNTA)
+        "professor_speech": ("E qual arquivo ele acessou? O log de auditoria (AUDIT) deve dizer.",),
         "terminal_text": "...",
         "objective": "Descubra o que aconteceu",
         "action_type": "ask_question",
         "question_prompt": "Qual arquivo ele acessou?",
-        "expected_answer": "senhas.txt"
+        "expected_answer": "senhas.txt" # Ou "/home/senhas.txt" se quiser ser rigoroso
     },
     { # Passo 5: Espera o comando 'vim' (COMANDO)
         "professor_speech": ("É, sabia que... ter esse txt ia me complicar.",
