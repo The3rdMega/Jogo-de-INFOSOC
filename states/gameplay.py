@@ -302,6 +302,12 @@ class GameplayState(BaseState):
                 self.error_message_timer = pygame.time.get_ticks()
             
             elif isinstance(result, dict):
+                if result.get("take_all_damage"):
+                    self.strikes = 0
+                    self.objective_list.set_strikes(0)
+                    self.trigger_game_over()
+                    return
+
                 action = result.get("action")
                 
                 if action == "show_event":
@@ -311,7 +317,7 @@ class GameplayState(BaseState):
                 elif action == "proceed_with_speech":
                     self.persist['override_speech'] = result.get("professor_speech")
                     self.proceed_to_next_step()
-
+                
     def handle_branch_event(self, event_data):
         """Lida com as respostas que não avançam a história."""
         
@@ -331,11 +337,15 @@ class GameplayState(BaseState):
                 # Nota: Se quiser que o evento sobrescreva permanentemente, remova is_error_message=True
             
             image_path = event_data.get("terminal_event_display")
-            self.terminal.show_event_image(image_path)
-            
             if image_path:
+                self.terminal.show_event_image(image_path)
                 self.showing_event_image = True
                 self.event_image_timer = pygame.time.get_ticks()
+            
+            # Isso permite mostrar o resultado do 'cat' sem mudar de passo
+            text_to_append = event_data.get("terminal_text_append")
+            if text_to_append:
+                self.terminal.add_to_history(text_to_append)
             
     def advance_speech(self):
         """Avança o índice da fala."""

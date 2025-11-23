@@ -207,35 +207,193 @@ STORY_STEPS = [
         "action_type": "auto_proceed",
         "next_step_delay": 2000
     },
-    { # Passo 9: Espera o comando 'whois' (COMANDO)
-        "professor_speech": ("Ok, vamos descobrir quem fez isso.",),
+    # --- AQUI COMEÇA A INVESTIGAÇÃO REFINADA ---
+
+    { # Passo 9: A Ideia do Whois (COMANDO)
+        "professor_speech": (
+            "O sistema está seguro, mas o criminoso ainda está solto.",
+            "Temos os nomes dos alunos suspeitos (Gustavo, Luigi, João), mas precisamos de uma prova técnica.",
+            "Lembra daquele IP que atacou a gente? 189.12.55.10.",
+            "Vamos usar o comando 'whois' nele. Esse comando consulta bancos de dados públicos para dizer quem é o 'dono' de um IP."
+        ),
         "terminal_text": "...",
-        "objective": "Pegue o Culpado (Use 'whois [IP do atacante]')",
+        "objective": "Descubra o dono do IP: 'whois 189.12.55.10'",
         "action_type": "await_command",
         "command_prompt": "user@professor-pc:~$",
         "expected_command": "whois 189.12.55.10"
     },
-    { # Passo 10: Resultado do 'whois' (AUTO + PERGUNTA)
-        "professor_speech": ("Bingo! O endereço dele!",),
-        "terminal_text": (
-            "user@professor-pc:~$ whois 189.12.55.10\n\n"
-            "inetnum: 189.12.55.0 - 189.12.55.255\n"
-            "owner: >>Redacted<<\n"
-            "address: SQN 210 Bloco Z Apto 101\n"
-            "city: Brasília\n"
-            "country: BR"
+    
+    { # Passo 10: O Whois "Falha" (Explicação Educativa)
+        "professor_speech": (
+            "Hmm... veja o resultado.",
+            "O dono do IP é 'UNB-DORM-WIFI-NET'. Ou seja, é a rede Wi-Fi dos dormitórios da própria UnB.",
+            "O 'whois' é ótimo para descobrir se um ataque veio da China ou da Rússia, mas para redes locais ele só aponta para a organização.",
+            "Não temos o nome da pessoa aqui, apenas sabemos que ela está usando o Wi-Fi da universidade."
         ),
-        "objective": "Pegue o Culpado",
-        "action_type": "ask_question", # Pergunta final
-        "question_prompt": "Qual a localizacao (bloco e apto) do atacante?",
-        "expected_answer": "SQN 210 Bloco Z Apto 101" # Ou só "210 Bloco Z"
-    },
-    { # Passo 11: Fim (AUTO)
-        "professor_speech": "Vou checar o endereço desse aluno no SIGAA... Ahá! Te peguei, João!",
-        "terminal_text": "user@professor-pc:~$ (abrindo sigaa...)\nBuscando aluno: SQN 210 Bloco Z Apto 101...\nAluno encontrado: Joao da Silva. Matrícula: 18/0012345.\nEnviando e-mail para a coordenacao...",
-        "objective": "Culpado Encontrado!",
+        "terminal_text": (
+            "user@professor-pc:~$ whois 189.12.55.10\n"
+            "% This is the RIPE Database query service.\n"
+            "inetnum:      189.12.55.0 - 189.12.55.255\n"
+            "netname:      UNB-DORM-WIFI-NET\n"
+            "descr:        University of Brasilia Student Housing\n"
+            "country:      BR\n"
+            "admin-c:      ADM-UNB\n"
+            "status:       ASSIGNED PA\n"
+        ),
+        "objective": "Whois inconclusivo. Analise a situação.",
         "action_type": "auto_proceed",
-        "next_step_delay": 5000 
-        # (O próximo estado seria "END_GAME_SCREEN")
+        "next_step_delay": 5000 # Tempo para ler
+    },
+    { # Passo 11: Acessando DHCP (COMANDO)
+        "professor_speech": (
+            "Certo, acesso aos logs de rede liberado.",
+            "Descubra qual dispositivo estava usando o IP 189.12.55.10.",
+            "Use 'cat /var/log/dhcp_leases'."
+        ),
+        "terminal_text": "...",
+        "objective": "Verifique o DHCP: 'cat /var/log/dhcp_leases'",
+        "action_type": "await_command",
+        "command_prompt": "user@professor-pc:~$",
+        "expected_command": "cat /var/log/dhcp_leases"
+    },
+
+    { # Passo 12: A Pergunta Ética (IP é prova?)
+        "professor_speech": (
+            "O log DHCP diz que o IP 189.12.55.10 pertence ao dispositivo 'Luigi-Gamer-PC'.",
+            "Isso parece incriminador.",
+            "Mas eu te pergunto: Baseado APENAS no IP, podemos expulsar o Luigi da universidade agora mesmo?"
+        ),
+        "terminal_text": "...",
+        "objective": "Decida se a prova é suficiente.",
+        "action_type": "ask_question_branching",
+        "question_prompt": "O IP é prova suficiente para condenar? (sim/nao)",
+        
+        "answer_handlers": {
+            "sim": {
+                "action": "show_event", # Erro conceitual
+                "professor_speech": "Errado! IPs podem ser falsificados (Spoofing) ou o PC dele pode ter sido invadido remotamente. Precisamos de mais provas.",
+                "take_damage": True
+            },
+            "nao": {
+                "action": "proceed_with_speech",
+                "professor_speech": (
+                    "Exato. IPs são circunstanciais. O Luigi pode ser uma vítima de 'Spoofing' ou acesso remoto.",
+                    "Precisamos de uma prova comportamental. Saber o que foi digitado naquela máquina."
+                )
+            }
+        }
+    },
+
+    { # Passo 13: O Tutorial do Histórico
+        "professor_speech": (
+            "No Linux, o arquivo oculto '.bash_history' dentro da pasta de cada usuário guarda os comandos digitados.",
+            "O caminho é '/home/[nome_do_usuario]/.bash_history'.",
+            "Eu vou liberar o terminal para você.",
+            "Use o comando 'cat' para ler o histórico de cada suspeito (gustavo, luigi, joao).",
+            "Não vou dar dicas. Analise os comandos e ache o hacker.",
+            "Quando tiver certeza, digite 'pronto'."
+        ),
+        "terminal_text": "...",
+        "objective": "Investigue os usuários: 'cat /home/[user]/.bash_history'",
+        "action_type": "ask_question_branching",
+        
+        # AQUI É O LOOP DE INVESTIGAÇÃO
+        "question_prompt": "Qual usuário investigar? (ou 'pronto')",
+        
+        "answer_handlers": {
+            # 1. INVESTIGAR GUSTAVO (Inocente - Programador)
+            "gustavo": {
+                "action": "show_event",
+                "professor_speech": "Ok, lendo histórico do Gustavo... tire suas conclusões.",
+                "terminal_text_append": ( # Simula o comando rodando
+                    "\nuser@professor-pc:~$ cat /home/gustavo/.bash_history\n"
+                    "python3 main.py\n"
+                    "pip install pygame\n"
+                    "git commit -m 'trabalho final'\n"
+                    "vim notas_de_aula.txt\n"
+                    "exit"
+                )
+            },
+            
+            # 2. INVESTIGAR LUIGI (Inocente - Gamer/Leigo)
+            "luigi": {
+                "action": "show_event",
+                "professor_speech": "Ok, lendo histórico do Luigi... tire suas conclusões.",
+                "terminal_text_append": (
+                    "\nuser@professor-pc:~$ cat /home/luigi/.bash_history\n"
+                    "minecraft\n"
+                    "discord\n"
+                    "ping google.com\n"
+                    "como sair do vim\n"
+                    "exit"
+                )
+            },
+            
+            # 3. INVESTIGAR JOÃO (Culpado - Hacker)
+            "joao": {
+                "action": "show_event",
+                "professor_speech": "Ok, lendo histórico do João... tire suas conclusões.",
+                "terminal_text_append": (
+                    "\nuser@professor-pc:~$ cat /home/joao/.bash_history\n"
+                    "nmap -sV 192.168.1.1\n"
+                    "hydra -l root -P rockyou.txt ssh://192.158.1.1\n"
+                    "ssh root@192.158.1.1\n"
+                    "./alterar_notas_sigaa.sh\n"
+                    "history -c"
+                )
+            },
+            
+            # 4. SAIR DO LOOP
+            "pronto": {
+                "action": "proceed_with_speech",
+                "professor_speech": "Certo. Você analisou as evidências.",
+                "next_step_delay": 1000
+            }
+        }
+    },
+
+    { # Passo 14: A Acusação Final
+        "professor_speech": "Baseado nos comandos que você viu no histórico... quem invadiu meu sistema?",
+        "terminal_text": "...",
+        "objective": "ACUSE O VERDADEIRO CULPADO.",
+        "action_type": "ask_question_branching",
+        "question_prompt": "Digite o nome do culpado:",
+        
+        "answer_handlers": {
+            # ACERTO
+            "joao": {
+                "action": "proceed_with_speech",
+                "professor_speech": (
+                    "Na mosca. O histórico dele tinha ferramentas de ataque (Hydra, Nmap) e o script de alteração.",
+                    "Ele tentou apagar o rastro com 'history -c', mas falhou.",
+                    "Bom trabalho, detetive."
+                ),
+                "next_step_delay": 4000
+            },
+            
+            # ERRO 1 (Gustavo)
+            "gustavo": {
+                "action": "show_event",
+                "professor_speech": "O Gustavo? Ele só estava programando em Python. Acusamos um aluno exemplar! O João aproveitou a confusão e fugiu...",
+                "terminal_event_display": "assets/images/ransomware_screen.png",
+                "take_all_damage": True
+            },
+            
+            # ERRO 2 (Luigi)
+            "luigi": {
+                "action": "show_event",
+                "professor_speech": "O Luigi? O histórico dele só tinha jogos! O IP dele foi clonado pelo João. Enquanto perdíamos tempo, o ataque real aconteceu...",
+                "terminal_event_display": "assets/images/ransomware_screen.png",
+                "take_all_damage": True
+            }
+        }
+    },
+    
+    { # Passo 15: Fim
+        "professor_speech": "Vou levar isso para a reitoria. Você salvou o semestre.",
+        "terminal_text": "...",
+        "objective": "VITORIA",
+        "action_type": "auto_proceed",
+        "next_step_delay": 5000
     }
 ]
