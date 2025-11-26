@@ -124,6 +124,9 @@ class TextInputBox:
                         elif handler["action"] == "show_speech_and_proceed": # (Da nossa conversa anterior)
                             self.deactivate() 
                             return handler
+                        elif handler["action"] == "game_over_speech":
+                            self.deactivate() # Desativa a caixa imediatamente!
+                            return handler
                     else:
                         return "invalid_option"
                 return None

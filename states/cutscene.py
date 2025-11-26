@@ -1,6 +1,3 @@
-#
-# Arquivo: states/cutscene.py
-#
 import pygame
 from states.base_state import BaseState
 from settings import SCREEN_WIDTH, SCREEN_HEIGHT
@@ -13,7 +10,7 @@ class CutsceneState(BaseState):
     
     def __init__(self):
         super().__init__()
-        self.next_state = "GAMEPLAY" # Padrão
+        self.next_state = "GAMEPLAY"
         
         # Dados da cena
         self.background_image = None
@@ -38,13 +35,6 @@ class CutsceneState(BaseState):
     def startup(self, persistent_data):
         """
         Configura a cena com os dados recebidos.
-        persistent_data pode conter:
-        - 'image_path': Caminho da imagem de fundo.
-        - 'title': Título principal.
-        - 'subtitle': Texto secundário.
-        - 'duration': Tempo em ms (se wait_for_input for False).
-        - 'wait_for_input': Se True, espera clique para sair.
-        - 'next_state': Para qual estado ir depois.
         """
         super().startup(persistent_data)
         
@@ -63,33 +53,27 @@ class CutsceneState(BaseState):
         
         if image_path:
             try:
-                raw_image = pygame.image.load(image_path).convert() # .convert() é mais rápido para bg
+                raw_image = pygame.image.load(image_path).convert()
                 self.background_image = pygame.transform.scale(
                     raw_image, (SCREEN_WIDTH, SCREEN_HEIGHT)
                 )
             except Exception as e:
                 print(f"Erro ao carregar imagem da cutscene '{image_path}': {e}")
-                # Se falhar, cria um fundo preto ou vermelho (se for game over)
                 self.background_image = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
                 if "ransomware" in str(image_path):
-                    self.background_image.fill((150, 0, 0)) # Vermelho escuro
+                    self.background_image.fill((150, 0, 0))
                 else:
-                    self.background_image.fill((0, 0, 0)) # Preto
+                    self.background_image.fill((0, 0, 0))
 
     def handle_event(self, event):
-        """Lida com cliques para pular a cena."""
         super().handle_event(event)
         
-        # Se o jogo estiver esperando input para continuar
         if self.wait_for_input:
             if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
-                self.done = True # Encerra a cena
+                self.done = True
 
     def update(self, dt):
-        """Checa o tempo se não estiver esperando input."""
-        
         if not self.wait_for_input:
-            # Se o tempo passou
             if pygame.time.get_ticks() - self.start_time >= self.duration:
                 self.done = True
 
@@ -102,33 +86,44 @@ class CutsceneState(BaseState):
         else:
             screen.fill((0, 0, 0))
             
-        # 2. Texto do Título (Centralizado)
+        # 2. Texto do Título (Centralizado e bem no topo)
         if self.title_text:
             title_surf = self.font_title.render(self.title_text, True, self.text_color)
-            title_rect = title_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 40))
             
-            # Sombra simples para leitura melhor
+            # --- MODIFICAÇÃO: POSIÇÃO MAIS ALTA ---
+            # Coloca o título a 15% da altura da tela (bem no topo)
+            # Ex: Em 600px de altura, ficará na posição Y = 90
+            title_y = int(SCREEN_HEIGHT * 0.15)
+            
+            title_rect = title_surf.get_rect(center=(SCREEN_WIDTH // 2, title_y))
+            
+            # Sombra simples
             shadow_surf = self.font_title.render(self.title_text, True, (0, 0, 0))
             screen.blit(shadow_surf, (title_rect.x + 2, title_rect.y + 2))
             screen.blit(title_surf, title_rect)
             
-        # 3. Texto do Subtítulo (Abaixo do título)
+        # 3. Texto do Subtítulo
         if self.subtitle_text:
             sub_surf = self.font_subtitle.render(self.subtitle_text, True, self.text_color)
-            sub_rect = sub_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 40))
+            
+            # Se houver título, o subtítulo fica um pouco abaixo dele
+            # Se você remover o subtítulo no gameplay.py, este bloco nem roda
+            reference_y = int(SCREEN_HEIGHT * 0.15)
+            sub_y = reference_y + 60
+            
+            sub_rect = sub_surf.get_rect(center=(SCREEN_WIDTH // 2, sub_y))
             
             shadow_surf = self.font_subtitle.render(self.subtitle_text, True, (0, 0, 0))
             screen.blit(shadow_surf, (sub_rect.x + 2, sub_rect.y + 2))
             screen.blit(sub_surf, sub_rect)
             
-        # 4. Aviso de "Clique para continuar" (se necessário)
+        # 4. Aviso de "Clique para continuar"
         if self.wait_for_input:
-            # Faz o texto piscar levemente
-            alpha = abs(pygame.time.get_ticks() % 1000 - 500) / 2.0 # 0 a 250
+            alpha = abs(pygame.time.get_ticks() % 1000 - 500) / 2.0
             
             prompt_surf = self.font_prompt.render("Pressione qualquer tecla...", True, (200, 200, 200))
-            # Hack para alpha em fontes
             prompt_surf.set_alpha(int(alpha + 50)) 
             
-            prompt_rect = prompt_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 30))
+            # MODIFICADO: Subimos de -30 para -60 para ficar mais visível acima da base
+            prompt_rect = prompt_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 60))
             screen.blit(prompt_surf, prompt_rect)
