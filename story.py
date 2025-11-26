@@ -238,6 +238,40 @@ STORY_STEPS = [
         "action_type": "auto_proceed",
         "next_step_delay": 5000 
     },
+
+    # --- NOVO: EXPLICAÇÃO DO DHCP ---
+    {
+        "professor_speech": (
+            "Ainda bem que temos logs internos.",
+            "Vamos ter que checar o DHCP.",
+            "Você sabe o que é DHCP?"
+        ),
+        "terminal_text": "...",
+        "objective": "Entenda o conceito de DHCP.",
+        "action_type": "ask_question_branching",
+        "question_prompt": "Voce sabe o que é DHCP?",
+        "answer_handlers": {
+            "sim": {
+                "action": "proceed_with_speech",
+                "professor_speech": (
+                    "Perfeito. Então você sabe que ele distribui os IPs na rede.",
+                    "E o melhor: ele mantém um registro de quem pegou qual IP."
+                ),
+            },
+            "nao": {
+                "action": "proceed_with_speech",
+                "professor_speech": (
+                    "DHCP significa 'Dynamic Host Configuration Protocol'.",
+                    "Pense nele como o recepcionista da rede.",
+                    "Quando um dispositivo se conecta, o DHCP 'empresta' um IP para ele por um tempo.",
+                    "E como todo bom recepcionista, ele anota tudo.",
+                    "Podemos ver qual dispositivo (MAC Address ou Nome) estava usando aquele IP específico na hora do ataque."
+                ),
+            }
+        }
+    },
+    # -------------------------------
+
     { 
         "professor_speech": (
             "Certo, acesso aos logs de rede liberado.",
@@ -297,7 +331,7 @@ STORY_STEPS = [
             "Quando tiver certeza, digite 'pronto'."
         ),
         "terminal_text": "...",
-        "objective": "Investigue os usuários: 'cat /home/[user]/.bash_history'",
+        "objective": "Investigue os usuários: arthur, luis, bruno",
         "action_type": "ask_question_branching",
         "question_prompt": "Qual usuário investigar? (ou 'pronto')",
         
@@ -371,10 +405,13 @@ STORY_STEPS = [
             "bruno": {
                 "action": "proceed_with_speech",
                 "professor_speech": (
-                    "Correto. Ele foi profissional: usou 'nc' para escanear a porta 22 discretamente.",
-                    "Depois logou via SSH e usou 'scp' para substituir o arquivo de notas lá dentro.",
-                    "E ainda tentou limpar o rastro com 'history -c'. Trabalho de profissional.",
-                    "Bom trabalho, detetive."
+                    "Na mosca. Ele foi extremamente sutil.",
+                    "Usou 'nc' para escanear a porta SSH em vez de ferramentas barulhentas.",
+                    "O Netcat (nc) é um utilitário que lê e escreve dados em conexões de rede, perfeito para reconhecimento furtivo.",
+                    "Usou 'scp' para transferir o arquivo malicioso sem deixar muitos rastros.",
+                    "O SCP copia arquivos entre máquinas de forma criptografada usando o protocolo SSH, garantindo discrição.",
+                    "E o 'history -c' no final foi a tentativa desesperada de limpar a cena do crime.",
+                    "Bom trabalho, detetive. Caso encerrado."
                 ),
                 "next_step_delay": 4000
             },
