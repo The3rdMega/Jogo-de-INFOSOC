@@ -121,6 +121,17 @@ class GameplayState(BaseState):
     def load_story_step(self, step_index):
         if step_index >= len(STORY_STEPS):
             print("Fim da história!")
+            
+            # Configura a tela de Vitória
+            self.next_state = "CUTSCENE"
+            self.persist = {
+                'title': "MISSÃO CUMPRIDA",
+                'subtitle': "Você identificou o hacker e protegeu o sistema.",
+                'duration': 5000,
+                'wait_for_input': True,
+                'next_state': None # None fará o jogo fechar após a tela de vitória
+            }
+            
             self.done = True
             return
         self.auto_proceed_timer = None
