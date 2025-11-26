@@ -1,11 +1,10 @@
 #
 # Arquivo: main.py
-# (Com redimensionamento de janela e escala de proporção)
+# (Com redimensionamento de janela, escala e música de fundo)
 #
 import pygame
 
-# Importa as constantes (tamanho da tela, FPS)
-# Adicionamos GAME_WIDTH e GAME_HEIGHT que definimos no settings.py
+# Importa as constantes
 from settings import SCREEN_WIDTH, SCREEN_HEIGHT, GAME_WIDTH, GAME_HEIGHT, FPS
 
 # Importa os "estados" do jogo.
@@ -22,14 +21,14 @@ class Game:
     def __init__(self):
         """Inicializa o Pygame e a janela."""
         pygame.init()
+        # Garante que o mixer de áudio foi iniciado
+        pygame.mixer.init()
         
         # 1. Cria a Janela Real (Redimensionável)
-        # A flag pygame.RESIZABLE permite que o usuário mude o tamanho ou maximize
         self.window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
         pygame.display.set_caption("O Hack da UnB")
         
         # 2. Cria a "Tela Falsa" (Resolução Fixa)
-        # Onde o jogo será desenhado internamente (ex: 800x600)
         self.fake_screen = pygame.Surface((GAME_WIDTH, GAME_HEIGHT))
         
         # Cria o relógio para controlar o FPS
@@ -37,9 +36,29 @@ class Game:
         
         # Variáveis de controle do loop
         self.running = True
-        self.dt = 0 # Delta Time
+        self.dt = 0 
         
-        # --- Variáveis de Escala (NOVO) ---
+        # --- MÚSICA DE FUNDO (NOVO) ---
+        try:
+            # Defina o caminho onde você salvou o arquivo.
+            # Recomendação: mova seu mp3 para 'assets/sounds/'
+            music_path = "assets/sounds/background_music.mp3"
+            
+            # Carrega o arquivo
+            pygame.mixer.music.load(music_path)
+            
+            # Define o volume (0.0 a 1.0). 0.3 é um bom volume de fundo.
+            pygame.mixer.music.set_volume(0.3)
+            
+            # Toca a música. O argumento '-1' significa LOOP INFINITO.
+            pygame.mixer.music.play(-1)
+            
+            print(f"Tocando música: {music_path}")
+        except Exception as e:
+            print(f"AVISO: Não foi possível carregar a música: {e}")
+            print("Certifique-se de criar a pasta 'assets/sounds' e colocar o arquivo lá.")
+
+        # --- Variáveis de Escala ---
         self.scale_ratio = 1.0
         self.offset_x = 0
         self.offset_y = 0
@@ -100,7 +119,6 @@ class Game:
         self.states["GAMEPLAY"] = GameplayState()
         
         # Define o estado inicial
-        # (Se quiser testar a cutscene, mude para "CUTSCENE")
         self.current_state_name = "GAMEPLAY" 
         
         self.current_state = self.states[self.current_state_name]
