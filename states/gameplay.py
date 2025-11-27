@@ -13,6 +13,9 @@ class GameplayState(BaseState):
         super().__init__()
         self.current_speech_index = 0
         self.speech_list = None
+        # Inicialização do mixer pro som de dano 
+        pygame.mixer.init()
+        self.damage_sound = pygame.mixer.Sound("assets/sounds/damage_sound.mp3")
         
         # --- NOVO: Flag de Morte Pendente ---
         self.pending_game_over = False 
@@ -51,9 +54,11 @@ class GameplayState(BaseState):
         self.strikes -= 1
         self.objective_list.set_strikes(self.strikes)
         print(f"DANO! Strikes restantes: {self.strikes}")
+
         if self.strikes <= 0:
             self.trigger_game_over()
         else:
+            self.damage_sound.play()
             self.set_speech("Cuidado! Se errarmos muito, eles vão perceber nossa conexão!", is_error_message=True)
 
     def trigger_game_over(self):
