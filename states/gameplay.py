@@ -34,8 +34,12 @@ class GameplayState(BaseState):
 
         try:
             professor_img_raw = pygame.image.load("assets/images/professor.png").convert_alpha()
+            suspects_img_raw = pygame.image.load("assets/images/suspects.png").convert_alpha()
             self.professor_image = pygame.transform.scale(
                 professor_img_raw, (PROFESSOR_RECT.width, PROFESSOR_RECT.height)
+            )
+            self.suspects_image = pygame.transform.scale(
+                suspects_img_raw, (583, 230)
             )
         except Exception as e:
             print(f"Erro ao carregar imagem do professor: {e}")
@@ -46,7 +50,7 @@ class GameplayState(BaseState):
         self.input_box = TextInputBox(INPUT_BOX_RECT)
         self.speech_bubble = SpeechBubble(SPEECH_BUBBLE_RECT)
         self.objective_list = ObjectiveList(OBJECTIVE_LIST_RECT)
-
+        
         self.strikes = MAX_STRIKES
         
     # ... (take_damage, trigger_game_over, close_event_image... MANTER IGUAIS) ...
@@ -139,6 +143,8 @@ class GameplayState(BaseState):
             
             self.done = True
             return
+        if step_index == 1:
+            self.suspects_image.fill((250, 0, 255)) 
         self.auto_proceed_timer = None
         self.event_image_timer = None
         self.error_message_timer = None 
@@ -336,6 +342,8 @@ class GameplayState(BaseState):
         self.speech_bubble.draw(screen)
         self.terminal.draw(screen)
         self.input_box.draw(screen)
+        if self.current_step == 14:
+            screen.blit(self.suspects_image, (207, 300))
 
     def handle_speech_and_proceed(self, event_data):
         self.set_speech(event_data.get("professor_speech"))
