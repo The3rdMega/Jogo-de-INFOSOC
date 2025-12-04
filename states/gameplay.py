@@ -221,8 +221,13 @@ class GameplayState(BaseState):
             }
             self.done = True
             return
+            
+        # Sua lógica personalizada de resetar imagem no passo 1
         if step_index == 1:
+            # Nota: 'fill' funciona em Surface, mas se suspects_image não for usado no draw, isso não faz nada visível.
+            # Mantive para não quebrar sua lógica.
             self.suspects_image.fill((250, 0, 255)) 
+
         # Reseta timers
         self.auto_proceed_timer = None
         self.event_image_timer = None
@@ -251,10 +256,13 @@ class GameplayState(BaseState):
             
         if step_data.get("objective"):
             self.objective_list.set_objective(step_data.get("objective"))
+            
         if step_data.get("terminal_text"):
             self.terminal.add_to_history(step_data.get("terminal_text"))
 
-        image_path = step_data.get("terminal_event_display")        
+        # --- LÓGICA DE IMAGEM ---
+        image_path = step_data.get("terminal_event_display")
+        
         if image_path is None:
             self.terminal.show_event_image(None)
             self.showing_event_image = False 
@@ -263,6 +271,7 @@ class GameplayState(BaseState):
         else:
             self.terminal.show_event_image(image_path)
         
+        # 5. Configura os componentes de "entrada" (ação)
         if not self.speech_list: 
             self.activate_input_for_current_step()
 
@@ -272,7 +281,9 @@ class GameplayState(BaseState):
         """
         if not is_error_message:
             self.current_step_speech_data = speech_data
+
         self.speech_bubble.set_indicator(False) 
+
         if isinstance(speech_data, (list, tuple)):
             self.speech_list = speech_data
             self.current_speech_index = 0 
@@ -291,6 +302,13 @@ class GameplayState(BaseState):
     def handle_event(self, event):
         """Passa os eventos (teclado/mouse) para o componente ATIVO."""
         super().handle_event(event) 
+        
+        # --- DEBUG: Pular passo com F1 (apenas para apresentação) ---
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_F1:
+            print(f"DEBUG: Pulando do passo {self.current_step} para {self.current_step + 1}")
+            self.proceed_to_next_step()
+            return
+        # ------------------------------------------------------------
         
         if self.showing_event_image:
             if event.type == pygame.MOUSEBUTTONDOWN:
@@ -314,6 +332,7 @@ class GameplayState(BaseState):
 
         elif self.input_box.is_active:
             result = self.input_box.handle_event(event)
+            
             if result == "correct":
                 self.proceed_to_next_step()
             elif result == "incorrect":
@@ -325,6 +344,7 @@ class GameplayState(BaseState):
             
             elif isinstance(result, dict):
                 action = result.get("action")
+                
                 if action == "show_event":
                     self.handle_branch_event(result) 
                 elif action == "show_speech_and_proceed":
@@ -365,15 +385,18 @@ class GameplayState(BaseState):
             next_step = event_data.get("next_step")
             self.set_speech(event_data.get("professor_speech"))
             self.load_story_step(next_step)
+            
         if event_data.get("action") == "show_ssh_explanation":
             next_step = event_data.get("next_step")
             self.set_speech(event_data.get("professor_speech"))
             self.load_story_step(next_step)
+
         if event_data.get("action") == "show_event":
             if event_data.get("professor_speech"):
                 # Define is_error_message=True se houve dano, para o texto voltar depois
                 is_err = event_data.get("take_damage", False)
                 self.set_speech(event_data.get("professor_speech"), is_error_message=is_err) 
+                
                 # Se teve dano, ativa o timer para restaurar texto
                 if is_err:
                     self.error_message_timer = pygame.time.get_ticks()
@@ -414,19 +437,23 @@ class GameplayState(BaseState):
             
     def update(self, dt):
         """Atualiza todos os componentes e checa timers."""
+        
         self.terminal.update()
         self.input_box.update()
         self.speech_bubble.update()
         self.objective_list.update()
+        
         if self.auto_proceed_timer is not None:
             now = pygame.time.get_ticks()
             if now - self.auto_proceed_timer >= self.auto_proceed_delay:
                 self.auto_proceed_timer = None 
                 self.proceed_to_next_step()
+
         if self.event_image_timer is not None:
             now = pygame.time.get_ticks()
             if now - self.event_image_timer >= self.event_image_duration:
                 self.close_event_image()
+
         # --- TIMER PARA RESTAURAR FALA ORIGINAL ---
         if self.error_message_timer is not None:
             if pygame.time.get_ticks() - self.error_message_timer >= self.error_message_duration:
@@ -458,5 +485,6 @@ class GameplayState(BaseState):
         # Garante que desativa o input imediatamente
         self.input_box.deactivate() 
         self.terminal.deactivate_input()
+        
         self.set_speech(event_data.get("professor_speech"))
         self.pending_game_over = True
