@@ -62,24 +62,32 @@ class GameplayState(BaseState):
         self.event_image_timer = None
         self.event_image_duration = 5000 # ms
 
-        # --- Carregar Assets Estáticos ---
+        # --- Carregar Assets Estáticos (SEPARADOS) ---
+        
+        # 1. Professor
         try:
             professor_img_raw = pygame.image.load("assets/images/professor.png").convert_alpha()
             self.professor_image = pygame.transform.scale(
                 professor_img_raw, (PROFESSOR_RECT.width, PROFESSOR_RECT.height)
             )
-            # Seu código personalizado de suspeitos
-            # (Assumindo que você usa isso em algum lugar do draw que não estava no código original,
-            # mas mantive aqui para preservar sua lógica)
-            suspects_img_raw = pygame.image.load("assets/images/suspects.png").convert_alpha()
-            self.suspects_image = pygame.transform.scale(
-                suspects_img_raw, (583, 230)
-            )
         except Exception as e:
-            print(f"Erro ao carregar imagens: {e}")
+            print(f"Erro ao carregar imagem do professor: {e}")
             self.professor_image = pygame.Surface((PROFESSOR_RECT.width, PROFESSOR_RECT.height))
             self.professor_image.fill((255, 0, 255)) 
-            self.suspects_image = pygame.Surface((583, 230)) # Fallback para suspeitos
+
+        # 2. Suspeitos (Correção de Posicionamento e Carregamento)
+        try:
+            suspects_img_raw = pygame.image.load("assets/images/suspects.png").convert_alpha()
+            # Escala a imagem para ter o tamanho EXATO do terminal
+            self.suspects_image = pygame.transform.scale(
+                suspects_img_raw, (TERMINAL_RECT.width, TERMINAL_RECT.height)
+            )
+            print("DEBUG: Imagem dos suspeitos carregada com sucesso!")
+        except Exception as e:
+            print(f"ERRO CRÍTICO ao carregar imagem dos suspeitos: {e}")
+            # Cria surface do tamanho do terminal
+            self.suspects_image = pygame.Surface((TERMINAL_RECT.width, TERMINAL_RECT.height))
+            self.suspects_image.fill((255, 0, 255)) 
 
         # --- Instanciar todos os Componentes da UI ---
         self.terminal = InteractiveTerminal(TERMINAL_RECT)
@@ -223,10 +231,9 @@ class GameplayState(BaseState):
             return
             
         # Sua lógica personalizada de resetar imagem no passo 1
-        if step_index == 1:
-            # Nota: 'fill' funciona em Surface, mas se suspects_image não for usado no draw, isso não faz nada visível.
-            # Mantive para não quebrar sua lógica.
-            self.suspects_image.fill((250, 0, 255)) 
+        # (Nota: 'fill' afeta a surface em memória, mas só é visível se ela for desenhada)
+        #if step_index == 1:
+        #    self.suspects_image.fill((250, 0, 255)) 
 
         # Reseta timers
         self.auto_proceed_timer = None
@@ -358,7 +365,7 @@ class GameplayState(BaseState):
     def handle_branch_event(self, event_data):
         """Lida com as respostas que não avançam a história."""
         
-        # --- AQUI ESTAVA FALTANDO A LÓGICA DE DANO ---
+        # --- LÓGICA DE DANO ---
         if event_data.get("take_damage"):
             # 1. Tira a vida
             self.strikes -= 1
@@ -466,11 +473,20 @@ class GameplayState(BaseState):
 
     def draw(self, screen):
         screen.blit(self.professor_image, PROFESSOR_RECT.topleft)
-        # Se você quiser desenhar a imagem dos suspeitos, descomente:
-        # screen.blit(self.suspects_image, (207, 300))
+        
+        
+        
         self.objective_list.draw(screen)
         self.speech_bubble.draw(screen)
         self.terminal.draw(screen)
+
+        # --- DESENHAR IMAGEM DOS SUSPEITOS DENTRO DO TERMINAL ---
+        # Se você ainda quer desenhar a imagem "suspects.png" em um passo específico (ex: 14)
+        if self.current_step == 19 and hasattr(self, 'suspects_image'):
+             # Desenha na posição do terminal (topleft)
+             screen.blit(self.suspects_image, TERMINAL_RECT.topleft)
+        # -------------------------------------------------------
+
         self.input_box.draw(screen)
 
     def handle_speech_and_proceed(self, event_data):

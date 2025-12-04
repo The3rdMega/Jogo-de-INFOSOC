@@ -416,8 +416,33 @@ STORY_STEPS = [
                 "next_step_delay": 4000
             },
             
+            "bruno henrique": {
+                "action": "proceed_with_speech",
+                "professor_speech": (
+                    "Na mosca. Ele foi extremamente sutil.",
+                    "Usou 'nc' para escanear a porta SSH em vez de ferramentas barulhentas.",
+                    "O Netcat (nc) é um utilitário que lê e escreve dados em conexões de rede, perfeito para reconhecimento furtivo.",
+                    "Usou 'scp' para transferir o arquivo malicioso sem deixar muitos rastros.",
+                    "O SCP copia arquivos entre máquinas de forma criptografada usando o protocolo SSH, garantindo discrição.",
+                    "E o 'history -c' no final foi a tentativa desesperada de limpar a cena do crime.",
+                    "Bom trabalho, detetive. Caso encerrado."
+                ),
+                "next_step_delay": 4000
+            },
+            
+            
             # ERRO 1 (arthur)
             "arthur": {
+                "action": "game_over_speech",
+                "professor_speech": (
+                    "O Arthur?! Não!",
+                    "Ele estava apenas programando em Python e rodando Docker. Coisas normais de dev.",
+                    "Acusamos a pessoa errada...",
+                    "O invasor percebeu que estamos investigando o alvo errado.",
+                    "Ele ativou o Kill Switch. Adeus sistema..."
+                )
+            },
+            "arthur luiz": {
                 "action": "game_over_speech",
                 "professor_speech": (
                     "O Arthur?! Não!",
@@ -436,6 +461,35 @@ STORY_STEPS = [
                     "Ele baixou um script falso da internet e nem conseguiu rodar.",
                     "O IP dele foi clonado pelo invasor via Spoofing.",
                     "Enquanto perdíamos tempo com ele, o ataque real aconteceu.",
+                    "Tarde demais. Os arquivos estão sendo criptografados..."
+                )
+            },
+            "luis felipe": {
+                "action": "game_over_speech",
+                "professor_speech": (
+                    "O Luis?! Olha o histórico dele...",
+                    "Ele baixou um script falso da internet e nem conseguiu rodar.",
+                    "O IP dele foi clonado pelo invasor via Spoofing.",
+                    "Enquanto perdíamos tempo com ele, o ataque real aconteceu.",
+                    "Tarde demais. Os arquivos estão sendo criptografados..."
+                )
+            },
+
+            "larcelo madeira": {
+                "action": "game_over_speech",
+                "professor_speech": (
+                    "Tá me acusando!?",
+                    "Não temos tempo para essas brincadeiras... kh-",
+                    "Droga, o invasor percebeu!",
+                    "Tarde demais. Os arquivos estão sendo criptografados..."
+                )
+            },
+            "larcelo": {
+                "action": "game_over_speech",
+                "professor_speech": (
+                    "Tá me acusando!?",
+                    "Não temos tempo para essas brincadeiras... kh-",
+                    "Droga, o invasor percebeu!",
                     "Tarde demais. Os arquivos estão sendo criptografados..."
                 )
             }
